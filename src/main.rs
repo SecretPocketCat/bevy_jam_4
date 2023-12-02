@@ -1,6 +1,7 @@
 // disable console on windows for release builds
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use bevy::asset::AssetMetaCheck;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy::winit::WinitWindows;
@@ -10,8 +11,13 @@ use std::io::Cursor;
 use winit::window::Icon;
 
 fn main() {
-    App::new()
-        .insert_resource(Msaa::Off)
+    let mut app = App::new();
+
+    if cfg!(target_arch = "wasm32") {
+        app.insert_resource(AssetMetaCheck::Never);
+    }
+
+    app.insert_resource(Msaa::Off)
         .insert_resource(ClearColor(Color::rgb(0.4, 0.4, 0.4)))
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
@@ -38,9 +44,7 @@ fn set_window_icon(
 ) {
     let primary_entity = primary_window.single();
     let primary = windows.get_window(primary_entity).unwrap();
-    let icon_buf = Cursor::new(include_bytes!(
-        "../build/macos/AppIcon.iconset/icon_256x256.png"
-    ));
+    let icon_buf = Cursor::new(include_bytes!("../build/icon_1024x1024.png"));
     if let Ok(image) = image::load(icon_buf, image::ImageFormat::Png) {
         let image = image.into_rgba8();
         let (width, height) = image.dimensions();
