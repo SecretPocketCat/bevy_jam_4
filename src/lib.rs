@@ -2,17 +2,15 @@
 
 mod actions;
 mod loading;
+mod map;
 mod menu;
 mod player;
 
 use crate::actions::ActionsPlugin;
 use crate::loading::LoadingPlugin;
 use crate::menu::MenuPlugin;
-use crate::player::PlayerPlugin;
-
-use bevy::app::App;
-#[cfg(debug_assertions)]
 use bevy::prelude::*;
+use map::MapPlugin;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -36,12 +34,7 @@ impl Plugin for GamePlugin {
             LoadingPlugin,
             MenuPlugin,
             ActionsPlugin,
-            PlayerPlugin,
+            MapPlugin,
         ));
-
-        #[cfg(debug_assertions)]
-        {
-            // app.add_plugins((FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin::default()));
-        }
     }
 }
