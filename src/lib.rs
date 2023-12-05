@@ -8,6 +8,7 @@ mod loading;
 mod map;
 mod menu;
 mod player;
+mod projectile;
 
 use crate::loading::LoadingPlugin;
 use crate::menu::MenuPlugin;
@@ -17,6 +18,7 @@ use animation::AnimationPlugin;
 use bevy::prelude::*;
 use input::InputPlugin;
 use map::MapPlugin;
+use projectile::ProjectilePlugin;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -43,6 +45,7 @@ impl Plugin for GamePlugin {
             AgentPlugin,
             PlayerPlugin,
             InputPlugin,
+            ProjectilePlugin,
             AnimationPlugin,
         ));
     }
