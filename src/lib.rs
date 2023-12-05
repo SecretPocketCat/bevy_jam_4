@@ -1,4 +1,5 @@
 #![allow(clippy::type_complexity)]
+#![allow(unused_imports)]
 
 mod actions;
 mod agent;
