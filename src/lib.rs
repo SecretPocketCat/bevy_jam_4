@@ -1,19 +1,19 @@
 #![allow(clippy::type_complexity)]
 #![allow(unused_imports)]
 
-mod actions;
 mod agent;
+mod animation;
 mod input;
 mod loading;
 mod map;
 mod menu;
 mod player;
 
-use crate::actions::ActionsPlugin;
 use crate::loading::LoadingPlugin;
 use crate::menu::MenuPlugin;
 use crate::player::PlayerPlugin;
 use agent::AgentPlugin;
+use animation::AnimationPlugin;
 use bevy::prelude::*;
 use input::InputPlugin;
 use map::MapPlugin;
@@ -39,11 +39,11 @@ impl Plugin for GamePlugin {
         app.add_state::<GameState>().add_plugins((
             LoadingPlugin,
             MenuPlugin,
-            ActionsPlugin,
             MapPlugin,
             AgentPlugin,
             PlayerPlugin,
             InputPlugin,
+            AnimationPlugin,
         ));
     }
 }

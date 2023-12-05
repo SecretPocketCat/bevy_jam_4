@@ -1,3 +1,4 @@
+use crate::animation::get_relative_translation_anim;
 use bevy::prelude::*;
 use hexx::Hex;
 
@@ -14,10 +15,13 @@ impl Plugin for AgentPlugin {
 }
 
 fn move_agent(
+    mut cmd: Commands,
     map: Res<WorldMap>,
-    mut agent_q: Query<(&mut Transform, &AgentCoords), Changed<AgentCoords>>,
+    agent_q: Query<(Entity, &AgentCoords), Changed<AgentCoords>>,
 ) {
-    for (mut t, coords) in agent_q.iter_mut() {
-        t.translation = map.layout.hex_to_world_pos(coords.0).extend(0.);
+    for (e, coords) in agent_q.iter() {
+        let position = map.layout.hex_to_world_pos(coords.0).extend(0.);
+        cmd.entity(e)
+            .insert(get_relative_translation_anim(position, 250));
     }
 }

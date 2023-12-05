@@ -576,8 +576,10 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_asset_loader",
+ "bevy_tweening",
  "hexx",
  "leafwing-input-manager",
+ "paste",
  "rand",
  "webbrowser",
 ]
@@ -998,6 +1000,15 @@ dependencies = [
  "bevy_reflect",
  "serde",
  "thiserror",
+]
+
+[[package]]
+name = "bevy_tweening"
+version = "0.9.0"
+source = "git+https://github.com/SecretPocketCat/bevy_tweening#05f964aa7356ee2f478a7e99c8440b602497fb07"
+dependencies = [
+ "bevy",
+ "interpolation",
 ]
 
 [[package]]
@@ -2042,6 +2053,12 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
 ]
+
+[[package]]
+name = "interpolation"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3b7357d2bbc5ee92f8e899ab645233e43d21407573cceb37fed8bc3dede2c02"
 
 [[package]]
 name = "io-kit-sys"

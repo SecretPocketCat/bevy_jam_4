@@ -31,3 +31,5 @@ rand = { version = "0.8.3" }
 webbrowser = { version = "0.8", features = ["hardened"] }
 hexx = "0.12.0"
 leafwing-input-manager = "0.11.2"
+bevy_tweening = { git = "https://github.com/SecretPocketCat/bevy_tweening" }
+paste = "1.0.14"
