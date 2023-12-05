@@ -2,6 +2,7 @@
 
 mod actions;
 mod agent;
+mod input;
 mod loading;
 mod map;
 mod menu;
@@ -13,6 +14,7 @@ use crate::menu::MenuPlugin;
 use crate::player::PlayerPlugin;
 use agent::AgentPlugin;
 use bevy::prelude::*;
+use input::InputPlugin;
 use map::MapPlugin;
 
 // This example game uses States to separate logic
@@ -40,6 +42,7 @@ impl Plugin for GamePlugin {
             MapPlugin,
             AgentPlugin,
             PlayerPlugin,
+            InputPlugin,
         ));
     }
 }

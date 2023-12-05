@@ -17,26 +17,23 @@ pub const HEX_SIZE: Vec2 = Vec2::splat(33.0);
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Playing), setup_grid)
-            .add_systems(Update, handle_input.run_if(in_state(GameState::Playing)));
+        app.add_systems(OnEnter(GameState::Playing), setup_grid);
     }
 }
 
 #[derive(Debug, Default, Resource)]
-struct HighlightedHexes {
-    pub selected: Hex,
-    pub ring: Vec<Hex>,
-    pub line: Vec<Hex>,
+pub struct HighlightedHexes {
+    pub selected: Option<Hex>,
+    pub movement: Vec<Hex>,
 }
 
 #[derive(Debug, Resource)]
 pub struct WorldMap {
     pub layout: HexLayout,
-    entities: HashMap<Hex, Entity>,
-    selected_material: Handle<ColorMaterial>,
-    line_material: Handle<ColorMaterial>,
-    ring_material: Handle<ColorMaterial>,
-    default_material: Handle<ColorMaterial>,
+    pub entities: HashMap<Hex, Entity>,
+    pub selected_material: Handle<ColorMaterial>,
+    pub ring_material: Handle<ColorMaterial>,
+    pub default_material: Handle<ColorMaterial>,
 }
 
 fn setup_grid(
@@ -53,7 +50,6 @@ fn setup_grid(
     // materials
     let selected_material = materials.add(Color::ORANGE.into());
     let ring_material = materials.add(Color::LIME_GREEN.into());
-    let line_material = materials.add(Color::GRAY.into());
     let default_material = materials.add(Color::WHITE.into());
 
     // mesh
@@ -95,73 +91,7 @@ fn setup_grid(
         selected_material,
         ring_material,
         default_material,
-        line_material,
     });
-}
-
-fn handle_input(
-    mut commands: Commands,
-    windows: Query<&Window, With<PrimaryWindow>>,
-    cameras: Query<(&Camera, &GlobalTransform)>,
-    mouse: Res<Input<MouseButton>>,
-    mut player_q: Query<&mut AgentCoords, With<Player>>,
-    map: Res<WorldMap>,
-    mut highlighted_hexes: Local<HighlightedHexes>,
-) {
-    let window = windows.single();
-    let (camera, cam_transform) = cameras.single();
-    if let Some(pos) = window
-        .cursor_position()
-        .and_then(|p| camera.viewport_to_world_2d(cam_transform, p))
-    {
-        let coord = map.layout.world_pos_to_hex(pos);
-
-        if let Some(entity) = map.entities.get(&coord) {
-            if mouse.just_pressed(MouseButton::Left) {
-                let mut player_coords = player_q.single_mut();
-                player_coords.0 = coord;
-                warn!("Player: {:?}", player_coords.0);
-            }
-
-            if coord == highlighted_hexes.selected {
-                return;
-            }
-
-            // Clear highlighted hexes materials
-            for vec in [&highlighted_hexes.ring, &highlighted_hexes.line] {
-                for entity in vec.iter().filter_map(|h| map.entities.get(h)) {
-                    commands
-                        .entity(*entity)
-                        .insert(map.default_material.clone());
-                }
-            }
-            commands
-                .entity(map.entities[&highlighted_hexes.selected])
-                .insert(map.default_material.clone());
-
-            // Draw a  line
-            highlighted_hexes.line = Hex::ZERO.line_to(coord).collect();
-            // Draw a ring
-            highlighted_hexes.ring = Hex::ZERO.ring(coord.ulength()).collect();
-
-            for (vec, mat) in [
-                (&highlighted_hexes.ring, &map.ring_material),
-                (&highlighted_hexes.line, &map.line_material),
-            ] {
-                for h in vec {
-                    if let Some(e) = map.entities.get(h) {
-                        commands.entity(*e).insert(mat.clone());
-                    }
-                }
-            }
-
-            // Make the selected tile red
-            commands
-                .entity(*entity)
-                .insert(map.selected_material.clone());
-            highlighted_hexes.selected = coord;
-        }
-    }
 }
 
 /// Compute a bevy mesh from the layout
