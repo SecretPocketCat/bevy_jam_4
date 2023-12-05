@@ -1,6 +1,7 @@
 #![allow(clippy::type_complexity)]
 
 mod actions;
+mod agent;
 mod loading;
 mod map;
 mod menu;
@@ -9,6 +10,8 @@ mod player;
 use crate::actions::ActionsPlugin;
 use crate::loading::LoadingPlugin;
 use crate::menu::MenuPlugin;
+use crate::player::PlayerPlugin;
+use agent::AgentPlugin;
 use bevy::prelude::*;
 use map::MapPlugin;
 
@@ -35,6 +38,8 @@ impl Plugin for GamePlugin {
             MenuPlugin,
             ActionsPlugin,
             MapPlugin,
+            AgentPlugin,
+            PlayerPlugin,
         ));
     }
 }

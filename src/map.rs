@@ -1,4 +1,8 @@
-use crate::GameState;
+use crate::{
+    agent::AgentCoords,
+    player::{self, Player},
+    GameState,
+};
 use bevy::{
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
@@ -26,8 +30,8 @@ struct HighlightedHexes {
 }
 
 #[derive(Debug, Resource)]
-struct Map {
-    layout: HexLayout,
+pub struct WorldMap {
+    pub layout: HexLayout,
     entities: HashMap<Hex, Entity>,
     selected_material: Handle<ColorMaterial>,
     line_material: Handle<ColorMaterial>,
@@ -42,20 +46,21 @@ fn setup_grid(
 ) {
     let layout = HexLayout {
         hex_size: HEX_SIZE,
+        orientation: HexOrientation::Pointy,
         ..default()
     };
 
     // materials
-    let selected_material = materials.add(Color::RED.into());
-    let ring_material = materials.add(Color::YELLOW.into());
-    let line_material = materials.add(Color::ORANGE.into());
+    let selected_material = materials.add(Color::ORANGE.into());
+    let ring_material = materials.add(Color::LIME_GREEN.into());
+    let line_material = materials.add(Color::GRAY.into());
     let default_material = materials.add(Color::WHITE.into());
 
     // mesh
     let mesh = hexagonal_plane(&layout);
     let mesh_handle = meshes.add(mesh);
 
-    let entities = shapes::hexagon(Hex::ZERO, 5)
+    let entities = shapes::hexagon(Hex::ZERO, 6)
         .map(|hex| {
             let pos = layout.hex_to_world_pos(hex);
             let id = commands
@@ -84,7 +89,7 @@ fn setup_grid(
         })
         .collect();
 
-    commands.insert_resource(Map {
+    commands.insert_resource(WorldMap {
         layout,
         entities,
         selected_material,
@@ -98,7 +103,9 @@ fn handle_input(
     mut commands: Commands,
     windows: Query<&Window, With<PrimaryWindow>>,
     cameras: Query<(&Camera, &GlobalTransform)>,
-    map: Res<Map>,
+    mouse: Res<Input<MouseButton>>,
+    mut player_q: Query<&mut AgentCoords, With<Player>>,
+    map: Res<WorldMap>,
     mut highlighted_hexes: Local<HighlightedHexes>,
 ) {
     let window = windows.single();
@@ -108,7 +115,14 @@ fn handle_input(
         .and_then(|p| camera.viewport_to_world_2d(cam_transform, p))
     {
         let coord = map.layout.world_pos_to_hex(pos);
-        if let Some(entity) = map.entities.get(&coord).copied() {
+
+        if let Some(entity) = map.entities.get(&coord) {
+            if mouse.just_pressed(MouseButton::Left) {
+                let mut player_coords = player_q.single_mut();
+                player_coords.0 = coord;
+                warn!("Player: {:?}", player_coords.0);
+            }
+
             if coord == highlighted_hexes.selected {
                 return;
             }
@@ -143,7 +157,7 @@ fn handle_input(
 
             // Make the selected tile red
             commands
-                .entity(entity)
+                .entity(*entity)
                 .insert(map.selected_material.clone());
             highlighted_hexes.selected = coord;
         }

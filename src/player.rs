@@ -1,4 +1,5 @@
 use crate::actions::Actions;
+use crate::agent::AgentCoords;
 use crate::loading::TextureAssets;
 use crate::GameState;
 use bevy::prelude::*;
@@ -21,10 +22,14 @@ fn spawn_player(mut commands: Commands, textures: Res<TextureAssets>) {
     commands
         .spawn(SpriteBundle {
             texture: textures.bevy.clone(),
+            sprite: Sprite {
+                custom_size: Some(Vec2::splat(50.)),
+                ..default()
+            },
             transform: Transform::from_translation(Vec3::new(0., 0., 1.)),
             ..Default::default()
         })
-        .insert(Player);
+        .insert((Player, AgentCoords::default()));
 }
 
 fn move_player(
