@@ -1,8 +1,4 @@
-use crate::{
-    agent::AgentCoords,
-    player::{self, Player},
-    GameState,
-};
+use crate::{agent::AgentCoords, GameState};
 use bevy::{
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
@@ -13,7 +9,13 @@ use hexx::{shapes, *};
 
 pub struct MapPlugin;
 
-pub const HEX_SIZE: Vec2 = Vec2::splat(33.0);
+pub const HEX_SIZE: f32 = 50.;
+pub const HEX_SIZE_INNER_MULT: f32 = 0.95;
+pub const HEX_SIZE_INNER: f32 = HEX_SIZE * HEX_SIZE_INNER_MULT;
+
+// https://www.redblobgames.com/grids/hexagons/#basics
+pub const HEX_WIDTH: f32 = HEX_SIZE * 1.732_050_8; // sqrt of 3
+pub const HEX_HEIGHT: f32 = HEX_SIZE * 2.;
 
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
@@ -42,7 +44,7 @@ fn setup_grid(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     let layout = HexLayout {
-        hex_size: HEX_SIZE,
+        hex_size: Vec2::splat(HEX_SIZE),
         orientation: HexOrientation::Pointy,
         ..default()
     };
@@ -56,7 +58,7 @@ fn setup_grid(
     let mesh = hexagonal_plane(&layout);
     let mesh_handle = meshes.add(mesh);
 
-    let entities = shapes::hexagon(Hex::ZERO, 6)
+    let entities = shapes::hexagon(Hex::ZERO, 3)
         .map(|hex| {
             let pos = layout.hex_to_world_pos(hex);
             let id = commands
@@ -98,8 +100,9 @@ fn setup_grid(
 fn hexagonal_plane(hex_layout: &HexLayout) -> Mesh {
     let mesh_info = PlaneMeshBuilder::new(hex_layout)
         .facing(Vec3::Z)
-        .with_scale(Vec3::splat(0.95))
+        .with_scale(Vec3::splat(HEX_SIZE_INNER_MULT))
         .build();
+
     Mesh::new(PrimitiveTopology::TriangleList)
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, mesh_info.vertices)
         .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, mesh_info.normals)

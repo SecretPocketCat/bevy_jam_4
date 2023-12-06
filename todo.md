@@ -1,8 +1,14 @@
-# Movement
+# Basic loop
 
-- [ ] highlight valid hexes
-- [ ] move on click to valid hex
+- [ ] spawn test piece
+- [ ] move piece
+- [ ] snap piece to grid
+- [ ] don't snap when out of bounds
+- [ ] don't snap when placement is not possible (hexes occupied)
+- [ ] check for lines & add ingredients
 
-# Projectiles
+# Extra
 
-- [ ] Spawn projectiles
+- [ ] consider a (baking) minigame to finish the cookies
+  - just a timer?
+  - push your luck?
