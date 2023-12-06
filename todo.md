@@ -3,7 +3,7 @@
 - [x] spawn test piece
 - [x] move piece
 - [x] snap piece to grid
-- [ ] don't snap when out of bounds
+- [x] don't snap when out of bounds
 - [ ] don't snap when placement is not possible (hexes occupied)
 - [ ] check for lines & add ingredients
 

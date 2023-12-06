@@ -1,5 +1,6 @@
 use crate::{
     map::{WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
+    math::{asymptotic_smoothing, asymptotic_smoothing_with_delta_time},
     GameState,
 };
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle, utils::info};
@@ -7,7 +8,7 @@ use bevy_eventlistener::prelude::*;
 use bevy_mod_picking::prelude::*;
 use hexx::Hex;
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 struct Piece(Vec<Hex>);
 
 #[derive(Component, Deref, DerefMut)]
@@ -69,19 +70,39 @@ fn spawn_piece(
 
 fn drag_piece(
     mut ev_r: EventReader<Pointer<Drag>>,
-    parent_q: Query<&Parent>,
+    target_q: Query<(&Parent, &Transform), Without<Piece>>,
     mut piece_q: Query<(&mut Transform, &mut InitialPosition, &Piece)>,
     map: Res<WorldMap>,
+    camera_q: Query<(&Camera, &GlobalTransform)>,
 ) {
+    let (camera, cam_transform) = camera_q.single();
+
     for ev in ev_r.read() {
-        if let Ok(parent) = parent_q.get(ev.target) {
+        if let Ok((parent, target_t)) = target_q.get(ev.target) {
             if let Ok((mut t, mut initial_pos, piece)) = piece_q.get_mut(parent.get()) {
                 t.translation.x = initial_pos.x + ev.distance.x;
                 t.translation.y = initial_pos.y - ev.distance.y;
 
-                let hex = map.layout.world_pos_to_hex(t.translation.truncate());
-                if map.entities.contains_key(&hex) {
-                    t.translation = map.layout.hex_to_world_pos(hex).extend(t.translation.z);
+                let cursor_pos = camera
+                    .viewport_to_world_2d(cam_transform, ev.pointer_location.position)
+                    .unwrap();
+                info!("t: {}, pointer: {}", t.translation, cursor_pos);
+                let start_hex = map.layout.world_pos_to_hex(cursor_pos);
+
+                if piece
+                    .iter()
+                    .all(|h| map.entities.contains_key(&(start_hex + *h)))
+                {
+                    let target_hex = map
+                        .layout
+                        .world_pos_to_hex(cursor_pos - target_t.translation.truncate());
+                    let hex_pos = map
+                        .layout
+                        .hex_to_world_pos(target_hex)
+                        .extend(t.translation.z);
+
+                    // todo: transition this to the target pos
+                    t.translation = hex_pos;
                 }
 
                 // todo: snap to grid if valid, else just move to position

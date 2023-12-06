@@ -6,6 +6,7 @@ mod animation;
 mod input;
 mod loading;
 mod map;
+mod math;
 mod menu;
 mod piece;
 
