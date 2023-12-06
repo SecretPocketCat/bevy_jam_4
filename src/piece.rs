@@ -133,14 +133,25 @@ fn drag_piece(
 }
 
 fn drag_piece_end(
+    mut cmd: Commands,
     mut ev_r: EventReader<Pointer<DragEnd>>,
     parent_q: Query<&Parent>,
-    mut piece_q: Query<(&Transform, &mut InitialPosition)>,
+    mut piece_q: Query<(&Transform, &mut InitialPosition, &Piece)>,
+    map: Res<WorldMap>,
 ) {
     for ev in ev_r.read() {
         if let Ok(parent) = parent_q.get(ev.target) {
-            if let Ok((t, mut initial_pos)) = piece_q.get_mut(parent.get()) {
-                initial_pos.0 = t.translation;
+            if let Ok((t, mut initial_pos, piece)) = piece_q.get_mut(parent.get()) {
+                if let Some(hex) = piece.target_hex {
+                    initial_pos.0 = map.layout.hex_to_world_pos(hex).extend(t.translation.z);
+                } else {
+                    cmd.entity(parent.get()).insert(get_translation_anim(
+                        None,
+                        initial_pos.0,
+                        220,
+                        EaseFunction::QuadraticOut,
+                    ));
+                }
             }
         }
     }
