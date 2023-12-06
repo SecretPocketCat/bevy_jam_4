@@ -7,8 +7,6 @@ use bevy::{
 };
 use hexx::{shapes, *};
 
-pub struct MapPlugin;
-
 pub const HEX_SIZE: f32 = 50.;
 pub const HEX_SIZE_INNER_MULT: f32 = 0.95;
 pub const HEX_SIZE_INNER: f32 = HEX_SIZE * HEX_SIZE_INNER_MULT;
@@ -17,16 +15,12 @@ pub const HEX_SIZE_INNER: f32 = HEX_SIZE * HEX_SIZE_INNER_MULT;
 pub const HEX_WIDTH: f32 = HEX_SIZE * 1.732_050_8; // sqrt of 3
 pub const HEX_HEIGHT: f32 = HEX_SIZE * 2.;
 
+pub struct MapPlugin;
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Playing), setup_grid);
+        app.init_resource::<PlacedHexes>()
+            .add_systems(OnEnter(GameState::Playing), setup_grid);
     }
-}
-
-#[derive(Debug, Default, Resource)]
-pub struct HighlightedHexes {
-    pub selected: Option<Hex>,
-    pub movement: Vec<Hex>,
 }
 
 #[derive(Debug, Resource)]
@@ -36,6 +30,30 @@ pub struct WorldMap {
     pub selected_material: Handle<ColorMaterial>,
     pub ring_material: Handle<ColorMaterial>,
     pub default_material: Handle<ColorMaterial>,
+}
+
+// todo
+#[derive(Clone)]
+pub enum Ingredient {
+    Honey,
+    Ginger,
+    Sugar,
+}
+
+// // todo:
+// pub enum HexColor {
+
+// }
+
+#[derive(Component, Clone)]
+pub struct HexData {
+    pub ingredient: Ingredient,
+    pub color: Color,
+}
+
+#[derive(Resource, Default)]
+pub struct PlacedHexes {
+    pub placed: HashMap<Hex, HexData>,
 }
 
 fn setup_grid(
@@ -94,6 +112,8 @@ fn setup_grid(
         ring_material,
         default_material,
     });
+
+    commands.insert_resource(PlacedHexes::default());
 }
 
 /// Compute a bevy mesh from the layout

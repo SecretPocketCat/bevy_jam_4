@@ -1,10 +1,14 @@
 use crate::{
     animation::{get_relative_translation_anim, get_translation_anim},
-    map::{WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
+    map::{HexData, Ingredient, PlacedHexes, WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
     math::{asymptotic_smoothing, asymptotic_smoothing_with_delta_time},
     GameState,
 };
-use bevy::{prelude::*, sprite::MaterialMesh2dBundle, utils::info};
+use bevy::{
+    prelude::*,
+    sprite::MaterialMesh2dBundle,
+    utils::{info, HashMap},
+};
 use bevy_eventlistener::prelude::*;
 use bevy_mod_picking::prelude::*;
 use bevy_tweening::EaseFunction;
@@ -12,7 +16,7 @@ use hexx::Hex;
 
 #[derive(Component)]
 struct Piece {
-    hexes: Vec<Hex>,
+    hexes: HashMap<Hex, HexData>,
     target_hex: Option<Hex>,
 }
 
@@ -53,7 +57,23 @@ fn spawn_piece(
         )))
         .insert((
             Piece {
-                hexes: vec![Hex::ZERO, Hex::X],
+                hexes: [
+                    (
+                        Hex::ZERO,
+                        HexData {
+                            ingredient: Ingredient::Ginger,
+                            color: Color::ORANGE,
+                        },
+                    ),
+                    (
+                        Hex::X,
+                        HexData {
+                            ingredient: Ingredient::Honey,
+                            color: Color::GREEN,
+                        },
+                    ),
+                ]
+                .into(),
                 target_hex: None,
             },
             InitialPosition(pos),
@@ -86,6 +106,7 @@ fn drag_piece(
     mut piece_q: Query<(&mut Transform, &InitialPosition, &mut Piece)>,
     map: Res<WorldMap>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
+    placed: Res<PlacedHexes>,
 ) {
     let (camera, cam_transform) = camera_q.single();
 
@@ -107,11 +128,10 @@ fn drag_piece(
                     }
                 }
 
-                if piece
-                    .hexes
-                    .iter()
-                    .all(|h| map.entities.contains_key(&(target_hex + *h)))
-                {
+                if piece.hexes.keys().all(|h| {
+                    map.entities.contains_key(&(target_hex + *h))
+                        && !placed.placed.contains_key(&(target_hex + *h))
+                }) {
                     piece.target_hex = Some(target_hex);
 
                     cmd.entity(parent.get()).insert(get_translation_anim(
@@ -138,12 +158,22 @@ fn drag_piece_end(
     parent_q: Query<&Parent>,
     mut piece_q: Query<(&Transform, &mut InitialPosition, &Piece)>,
     map: Res<WorldMap>,
+    mut placed: ResMut<PlacedHexes>,
 ) {
     for ev in ev_r.read() {
         if let Ok(parent) = parent_q.get(ev.target) {
             if let Ok((t, mut initial_pos, piece)) = piece_q.get_mut(parent.get()) {
                 if let Some(hex) = piece.target_hex {
                     initial_pos.0 = map.layout.hex_to_world_pos(hex).extend(t.translation.z);
+                    // todo: this seems wrong
+                    // actually have to use offset hexes
+                    placed.placed.extend(
+                        piece
+                            .hexes
+                            .clone()
+                            .into_iter()
+                            .map(|(key, val)| (hex + key, val)),
+                    );
                 } else {
                     cmd.entity(parent.get()).insert(get_translation_anim(
                         None,
