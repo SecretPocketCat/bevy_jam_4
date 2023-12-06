@@ -79,33 +79,28 @@ fn drag_piece(
 
     for ev in ev_r.read() {
         if let Ok((parent, target_t)) = target_q.get(ev.target) {
-            if let Ok((mut t, mut initial_pos, piece)) = piece_q.get_mut(parent.get()) {
-                t.translation.x = initial_pos.x + ev.distance.x;
-                t.translation.y = initial_pos.y - ev.distance.y;
+            if let Ok((mut piece_t, mut initial_pos, piece)) = piece_q.get_mut(parent.get()) {
+                piece_t.translation.x = initial_pos.x + ev.distance.x;
+                piece_t.translation.y = initial_pos.y - ev.distance.y;
 
+                // todo: make this a resource
                 let cursor_pos = camera
                     .viewport_to_world_2d(cam_transform, ev.pointer_location.position)
                     .unwrap();
-                info!("t: {}, pointer: {}", t.translation, cursor_pos);
-                let start_hex = map.layout.world_pos_to_hex(cursor_pos);
 
-                if piece
-                    .iter()
-                    .all(|h| map.entities.contains_key(&(start_hex + *h)))
-                {
-                    let target_hex = map
-                        .layout
-                        .world_pos_to_hex(cursor_pos - target_t.translation.truncate());
+                let hex = map
+                    .layout
+                    .world_pos_to_hex(cursor_pos - target_t.translation.truncate());
+
+                if piece.iter().all(|h| map.entities.contains_key(&(hex + *h))) {
                     let hex_pos = map
                         .layout
-                        .hex_to_world_pos(target_hex)
-                        .extend(t.translation.z);
+                        .hex_to_world_pos(hex)
+                        .extend(piece_t.translation.z);
 
                     // todo: transition this to the target pos
-                    t.translation = hex_pos;
+                    piece_t.translation = hex_pos;
                 }
-
-                // todo: snap to grid if valid, else just move to position
             }
         }
     }
