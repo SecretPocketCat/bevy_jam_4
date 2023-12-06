@@ -5,8 +5,9 @@
 - [x] snap piece to grid
 - [x] don't snap when out of bounds
 - [ ] don't snap when placement is not possible (hexes occupied)
-- [ ] tween snapping
+- [x] tween snapping
 - [ ] restore position on invalid drop
+- [ ] randomize pieces
 - [ ] check for lines & add ingredients
 
 # Extra

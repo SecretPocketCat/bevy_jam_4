@@ -1,4 +1,5 @@
 use crate::{
+    animation::{get_relative_translation_anim, get_translation_anim},
     map::{WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
     math::{asymptotic_smoothing, asymptotic_smoothing_with_delta_time},
     GameState,
@@ -6,10 +7,14 @@ use crate::{
 use bevy::{prelude::*, sprite::MaterialMesh2dBundle, utils::info};
 use bevy_eventlistener::prelude::*;
 use bevy_mod_picking::prelude::*;
+use bevy_tweening::EaseFunction;
 use hexx::Hex;
 
-#[derive(Component, Deref, DerefMut)]
-struct Piece(Vec<Hex>);
+#[derive(Component)]
+struct Piece {
+    hexes: Vec<Hex>,
+    target_hex: Option<Hex>,
+}
 
 #[derive(Component, Deref, DerefMut)]
 struct InitialPosition(Vec3);
@@ -46,7 +51,13 @@ fn spawn_piece(
         cmd.spawn(SpatialBundle::from_transform(Transform::from_translation(
             pos,
         )))
-        .insert((Piece(vec![Hex::ZERO, Hex::X]), InitialPosition(pos)))
+        .insert((
+            Piece {
+                hexes: vec![Hex::ZERO, Hex::X],
+                target_hex: None,
+            },
+            InitialPosition(pos),
+        ))
         .with_children(|b| {
             // todo: position properly
             for x in [0., HEX_WIDTH] {
@@ -69,9 +80,10 @@ fn spawn_piece(
 }
 
 fn drag_piece(
+    mut cmd: Commands,
     mut ev_r: EventReader<Pointer<Drag>>,
     target_q: Query<(&Parent, &Transform), Without<Piece>>,
-    mut piece_q: Query<(&mut Transform, &mut InitialPosition, &Piece)>,
+    mut piece_q: Query<(&mut Transform, &InitialPosition, &mut Piece)>,
     map: Res<WorldMap>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
 ) {
@@ -79,27 +91,41 @@ fn drag_piece(
 
     for ev in ev_r.read() {
         if let Ok((parent, target_t)) = target_q.get(ev.target) {
-            if let Ok((mut piece_t, mut initial_pos, piece)) = piece_q.get_mut(parent.get()) {
-                piece_t.translation.x = initial_pos.x + ev.distance.x;
-                piece_t.translation.y = initial_pos.y - ev.distance.y;
-
+            if let Ok((mut piece_t, initial_pos, mut piece)) = piece_q.get_mut(parent.get()) {
                 // todo: make this a resource
                 let cursor_pos = camera
                     .viewport_to_world_2d(cam_transform, ev.pointer_location.position)
                     .unwrap();
 
-                let hex = map
+                let target_hex = map
                     .layout
                     .world_pos_to_hex(cursor_pos - target_t.translation.truncate());
 
-                if piece.iter().all(|h| map.entities.contains_key(&(hex + *h))) {
-                    let hex_pos = map
-                        .layout
-                        .hex_to_world_pos(hex)
-                        .extend(piece_t.translation.z);
+                if let Some(hex) = piece.target_hex {
+                    if target_hex == hex {
+                        continue;
+                    }
+                }
 
-                    // todo: transition this to the target pos
-                    piece_t.translation = hex_pos;
+                if piece
+                    .hexes
+                    .iter()
+                    .all(|h| map.entities.contains_key(&(target_hex + *h)))
+                {
+                    piece.target_hex = Some(target_hex);
+
+                    cmd.entity(parent.get()).insert(get_translation_anim(
+                        None,
+                        map.layout
+                            .hex_to_world_pos(target_hex)
+                            .extend(piece_t.translation.z),
+                        120,
+                        EaseFunction::QuadraticOut,
+                    ));
+                } else {
+                    piece.target_hex.take();
+                    piece_t.translation.x = initial_pos.x + ev.distance.x;
+                    piece_t.translation.y = initial_pos.y - ev.distance.y;
                 }
             }
         }
