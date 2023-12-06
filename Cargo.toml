@@ -33,3 +33,5 @@ hexx = "0.12.0"
 leafwing-input-manager = "0.11.2"
 bevy_tweening = { git = "https://github.com/SecretPocketCat/bevy_tweening" }
 paste = "1.0.14"
+bevy_mod_picking = "0.17.0"
+bevy_eventlistener = "0.6.1"
