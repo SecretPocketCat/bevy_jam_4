@@ -6,6 +6,7 @@ use bevy::{
     window::PrimaryWindow,
 };
 use hexx::{shapes, *};
+use strum::EnumIter;
 
 pub const MAP_RADIUS: u32 = 3;
 pub const HEX_SIZE: f32 = 50.;
@@ -63,8 +64,6 @@ impl WorldMap {
 
                         acc
                     });
-
-                info!("col: {color_match_count}, ing: {ingredient_match_count}, ");
 
                 let cleared_col = color_match_count == line.len();
                 let cleared_ingredient = ingredient_match_count == line.len();
@@ -125,11 +124,13 @@ impl MapHex {
 }
 
 // todo
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, EnumIter)]
 pub enum Ingredient {
     Honey,
     Ginger,
     Sugar,
+    Spices,
+    Frosting,
 }
 
 // // todo:

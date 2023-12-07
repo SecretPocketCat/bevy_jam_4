@@ -12,6 +12,47 @@ use bevy::{
 use bevy_mod_picking::prelude::*;
 use bevy_tweening::EaseFunction;
 use hexx::Hex;
+use rand::{distributions::WeightedIndex, prelude::*};
+use strum::IntoEnumIterator;
+
+#[derive(Debug, Resource)]
+struct PieceBlueprints {
+    blueprints: Vec<Vec<Hex>>,
+    weighted_index: WeightedIndex<u8>,
+    colors: [Color; 5],
+}
+
+impl Default for PieceBlueprints {
+    fn default() -> Self {
+        let blueprints = vec![
+            (vec![Hex::ZERO], 2),
+            (vec![Hex::ZERO, Hex::X], 4),
+            (vec![Hex::ZERO, Hex::X, Hex::Y], 3),
+            (vec![Hex::ZERO, Hex::X, Hex::ONE], 2),
+            (vec![Hex::ZERO, Hex::X, Hex::new(-1, 1)], 2),
+            (vec![Hex::ZERO, Hex::X, Hex::X * 2], 2),
+            (vec![Hex::ZERO, Hex::X, Hex::Y, Hex::ONE], 1),
+            // (vec![Hex::ZERO, Hex::X, Hex::X * 2, Hex::X * 3], 1),
+            (vec![Hex::ZERO, Hex::X, Hex::X * 2, Hex::Y], 1),
+            (vec![Hex::ZERO, Hex::X, Hex::X * 2, Hex::ONE], 1),
+        ];
+
+        let weights: Vec<_> = blueprints.iter().map(|(_, weight)| *weight).collect();
+        let weighted_index = WeightedIndex::new(weights).unwrap();
+
+        Self {
+            blueprints: blueprints.into_iter().map(|bp| bp.0).collect(),
+            weighted_index,
+            colors: [
+                Color::CRIMSON,
+                Color::ORANGE,
+                Color::YELLOW_GREEN,
+                Color::BLACK,
+                Color::NAVY,
+            ],
+        }
+    }
+}
 
 #[derive(Component)]
 struct Piece {
@@ -25,18 +66,22 @@ struct InitialPosition(Vec3);
 pub struct PiecePlugin;
 impl Plugin for PiecePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(DefaultPickingPlugins).add_systems(
-            Update,
-            (spawn_piece, drag_piece, drag_piece_end).distributive_run_if(
-                in_state(GameState::Playing).and_then(resource_exists::<WorldMap>()),
-            ),
-        );
+        app.init_resource::<PieceBlueprints>()
+            .add_plugins(DefaultPickingPlugins)
+            .add_systems(
+                Update,
+                (spawn_piece, drag_piece, drag_piece_end).distributive_run_if(
+                    in_state(GameState::Playing).and_then(resource_exists::<WorldMap>()),
+                ),
+            );
     }
 }
 
 fn spawn_piece(
     mut cmd: Commands,
     map: Res<WorldMap>,
+    map_layout: Res<WorldLayout>,
+    blueprints: Res<PieceBlueprints>,
     piece_q: Query<&Piece>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -46,9 +91,62 @@ fn spawn_piece(
         // todo: determine size (weighted)
         let size = 2;
 
+        let mut rng = thread_rng();
+        let blueprint = &blueprints.blueprints[blueprints.weighted_index.sample(&mut rng)];
+
+        let colors: Vec<_> = blueprints.colors.choose_multiple(&mut rng, 2).collect();
+        let ingredients = Ingredient::iter().choose_multiple(&mut rng, 2);
+
+        let placed: HashMap<_, _> = blueprint
+            .iter()
+            .map(|h| {
+                (
+                    *h,
+                    PlacedHex {
+                        color: **colors.choose(&mut rng).unwrap(),
+                        ingredient: *ingredients.choose(&mut rng).unwrap(),
+                    },
+                )
+            })
+            .collect();
+
         // todo: determine distribution for the size
 
         // randomize rotation (if size > 1)
+
+        let children: Vec<_> = placed
+            .iter()
+            .map(|(hex, placed)| {
+                cmd.spawn((
+                    MaterialMesh2dBundle {
+                        mesh: meshes
+                            .add(shape::RegularPolygon::new(HEX_SIZE_INNER, 6).into())
+                            .into(),
+                        material: materials.add(ColorMaterial::from(placed.color)),
+                        transform: Transform::from_translation(
+                            map_layout.hex_to_world_pos(*hex).extend(0.),
+                        ),
+                        ..default()
+                    },
+                    PickableBundle::default(),
+                ))
+                .with_children(|b| {
+                    b.spawn(Text2dBundle {
+                        text: Text::from_section(
+                            format!("{:?}", placed.ingredient),
+                            TextStyle {
+                                font_size: 17.0,
+                                color: Color::WHITE,
+                                ..default()
+                            },
+                        ),
+                        transform: Transform::from_xyz(0.0, 0.0, 10.0),
+                        ..default()
+                    });
+                })
+                .id()
+            })
+            .collect();
 
         let pos = Vec3::new(0., 400., 1.);
         cmd.spawn(SpatialBundle::from_transform(Transform::from_translation(
@@ -56,43 +154,12 @@ fn spawn_piece(
         )))
         .insert((
             Piece {
-                hexes: [
-                    (
-                        Hex::ZERO,
-                        PlacedHex {
-                            ingredient: Ingredient::Ginger,
-                            color: Color::ORANGE,
-                        },
-                    ),
-                    (
-                        Hex::X,
-                        PlacedHex {
-                            ingredient: Ingredient::Honey,
-                            color: Color::ORANGE,
-                        },
-                    ),
-                ]
-                .into(),
+                hexes: placed,
                 target_hex: None,
             },
             InitialPosition(pos),
         ))
-        .with_children(|b| {
-            // todo: position properly
-            for x in [0., HEX_WIDTH] {
-                b.spawn((
-                    MaterialMesh2dBundle {
-                        mesh: meshes
-                            .add(shape::RegularPolygon::new(HEX_SIZE_INNER, 6).into())
-                            .into(),
-                        material: materials.add(ColorMaterial::from(Color::TURQUOISE)),
-                        transform: Transform::from_xyz(x, 0., 0.),
-                        ..default()
-                    },
-                    PickableBundle::default(),
-                ));
-            }
-        });
+        .push_children(&children);
     }
 }
 

@@ -10,9 +10,10 @@
 - [x] tween snapping
 - [x] restore position on invalid drop
 - [x] place hex
-- [ ] randomize pieces
+- [x] randomize pieces
 - [x] check for lines
-- [ ] clean map on clear
+- [ ] rotate pieces
+- [ ] finish map
 - [ ] add ingredients on line clears
 
 ## Scoring
