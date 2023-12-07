@@ -9,7 +9,6 @@ use bevy::{
     sprite::MaterialMesh2dBundle,
     utils::{info, HashMap},
 };
-use bevy_eventlistener::prelude::*;
 use bevy_mod_picking::prelude::*;
 use bevy_tweening::EaseFunction;
 use hexx::Hex;
@@ -90,9 +89,7 @@ fn spawn_piece(
                         transform: Transform::from_xyz(x, 0., 0.),
                         ..default()
                     },
-                    // PickableBundle::default(),
-                    // On::<Pointer<DragStart>>::target_insert(Pickable::IGNORE), // Disable picking
-                    // On::<Pointer<DragEnd>>::target_insert(Pickable::default()), // Re-enable picking
+                    PickableBundle::default(),
                 ));
             }
         });
