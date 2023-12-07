@@ -1,4 +1,4 @@
-use crate::{agent::AgentCoords, GameState};
+use crate::GameState;
 use bevy::{
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
@@ -7,6 +7,7 @@ use bevy::{
 };
 use hexx::{shapes, *};
 
+pub const MAP_RADIUS: u32 = 3;
 pub const HEX_SIZE: f32 = 50.;
 pub const HEX_SIZE_INNER_MULT: f32 = 0.95;
 pub const HEX_SIZE_INNER: f32 = HEX_SIZE * HEX_SIZE_INNER_MULT;
@@ -18,22 +19,113 @@ pub const HEX_HEIGHT: f32 = HEX_SIZE * 2.;
 pub struct MapPlugin;
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<PlacedHexes>()
-            .add_systems(OnEnter(GameState::Playing), setup_grid);
+        app.add_systems(OnEnter(GameState::Playing), setup_grid);
     }
 }
 
-#[derive(Debug, Resource)]
-pub struct WorldMap {
-    pub layout: HexLayout,
-    pub entities: HashMap<Hex, Entity>,
-    pub selected_material: Handle<ColorMaterial>,
-    pub ring_material: Handle<ColorMaterial>,
-    pub default_material: Handle<ColorMaterial>,
+#[derive(Debug, Resource, Deref, DerefMut)]
+pub struct WorldLayout(HexLayout);
+
+#[derive(Debug, Resource, Deref, DerefMut)]
+pub struct WorldMap(HashMap<Hex, MapHex>);
+
+impl WorldMap {
+    pub fn place_piece(
+        &mut self,
+        hex: Hex,
+        piece_hexes: &HashMap<Hex, PlacedHex>,
+    ) -> Vec<Vec<Hex>> {
+        let cleared_lines = Vec::new();
+
+        let placed_hexes: Vec<_> = piece_hexes
+            .iter()
+            .map(|(key, val)| (hex + *key, val.clone()))
+            .collect();
+
+        // place hexes
+        for (hex, placed_hex) in placed_hexes.iter() {
+            self.entry(*hex).and_modify(|map_hex| {
+                map_hex.placed = Some(placed_hex.clone());
+            });
+        }
+
+        for (placed_hex, placed_hex_data) in placed_hexes.iter() {
+            // line can be cleared twice (ingredient & color)
+            let clear_count = 0;
+
+            for line in self.lines(*placed_hex) {
+                let (color_match_count, ingredient_match_count) =
+                    line.iter().fold((0, 0), |mut acc, h| {
+                        if let Some(placed_hex) = self[h].placed.as_ref() {
+                            acc.0 += (placed_hex.color == placed_hex_data.color) as usize;
+                            acc.1 += (placed_hex.ingredient == placed_hex_data.ingredient) as usize;
+                        }
+
+                        acc
+                    });
+
+                info!("col: {color_match_count}, ing: {ingredient_match_count}, ");
+
+                let cleared_col = color_match_count == line.len();
+                let cleared_ingredient = ingredient_match_count == line.len();
+
+                if cleared_col {
+                    info!("Cleared color line!");
+                }
+
+                if cleared_ingredient {
+                    info!("Cleared ingredient line!");
+                }
+            }
+
+            // check lines for ingredient and/or color matches
+        }
+
+        cleared_lines
+    }
+
+    pub fn lines(&self, hex: Hex) -> [Vec<Hex>; 3] {
+        let radius = MAP_RADIUS as i32;
+        let max_range = -radius as i32..=radius;
+        let hex_z = hex.z();
+
+        let x = max_range
+            .clone()
+            .map(|y| Hex::new(hex.x, y))
+            .filter(|h| self.contains_key(h))
+            .collect();
+        let y = max_range
+            .clone()
+            .map(|x| Hex::new(x, -x - hex_z))
+            .filter(|h| self.contains_key(h))
+            .collect();
+        let z = max_range
+            .clone()
+            .map(|x| Hex::new(x, hex.y))
+            .filter(|h| self.contains_key(h))
+            .collect();
+
+        [x, y, z]
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct MapHex {
+    pub entity: Entity,
+    pub placed: Option<PlacedHex>,
+}
+
+impl MapHex {
+    pub fn new(entity: Entity) -> Self {
+        Self {
+            entity,
+            placed: None,
+        }
+    }
 }
 
 // todo
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Ingredient {
     Honey,
     Ginger,
@@ -45,15 +137,10 @@ pub enum Ingredient {
 
 // }
 
-#[derive(Component, Clone)]
-pub struct HexData {
+#[derive(Component, Clone, Debug)]
+pub struct PlacedHex {
     pub ingredient: Ingredient,
     pub color: Color,
-}
-
-#[derive(Resource, Default)]
-pub struct PlacedHexes {
-    pub placed: HashMap<Hex, HexData>,
 }
 
 fn setup_grid(
@@ -68,52 +155,43 @@ fn setup_grid(
     };
 
     // materials
-    let selected_material = materials.add(Color::ORANGE.into());
-    let ring_material = materials.add(Color::LIME_GREEN.into());
     let default_material = materials.add(Color::WHITE.into());
 
     // mesh
     let mesh = hexagonal_plane(&layout);
     let mesh_handle = meshes.add(mesh);
 
-    let entities = shapes::hexagon(Hex::ZERO, 3)
+    let hexes = shapes::hexagon(Hex::ZERO, MAP_RADIUS)
         .map(|hex| {
             let pos = layout.hex_to_world_pos(hex);
-            let id = commands
+            let entity = commands
                 .spawn(ColorMesh2dBundle {
                     transform: Transform::from_xyz(pos.x, pos.y, 0.0),
                     mesh: mesh_handle.clone().into(),
                     material: default_material.clone(),
                     ..default()
                 })
-                // .with_children(|b| {
-                //     b.spawn(Text2dBundle {
-                //         text: Text::from_section(
-                //             format!("{},{}", hex.x, hex.y),
-                //             TextStyle {
-                //                 font_size: 7.0,
-                //                 color: Color::BLACK,
-                //                 ..default()
-                //             },
-                //         ),
-                //         transform: Transform::from_xyz(0.0, 0.0, 10.0),
-                //         ..default()
-                //     });
-                // })
+                .with_children(|b| {
+                    b.spawn(Text2dBundle {
+                        text: Text::from_section(
+                            format!("{},{}", hex.x, hex.y),
+                            TextStyle {
+                                font_size: 17.0,
+                                color: Color::BLACK,
+                                ..default()
+                            },
+                        ),
+                        transform: Transform::from_xyz(0.0, 0.0, 10.0),
+                        ..default()
+                    });
+                })
                 .id();
-            (hex, id)
+            (hex, MapHex::new(entity))
         })
         .collect();
 
-    commands.insert_resource(WorldMap {
-        layout,
-        entities,
-        selected_material,
-        ring_material,
-        default_material,
-    });
-
-    commands.insert_resource(PlacedHexes::default());
+    commands.insert_resource(WorldLayout(layout));
+    commands.insert_resource(WorldMap(hexes));
 }
 
 /// Compute a bevy mesh from the layout

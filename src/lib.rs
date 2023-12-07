@@ -1,7 +1,6 @@
 #![allow(clippy::type_complexity)]
 #![allow(unused_imports)]
 
-mod agent;
 mod animation;
 mod input;
 mod loading;
@@ -13,7 +12,6 @@ mod piece;
 use crate::loading::LoadingPlugin;
 use crate::menu::MenuPlugin;
 use crate::piece::PiecePlugin;
-use agent::AgentPlugin;
 use animation::AnimationPlugin;
 use bevy::prelude::*;
 use input::InputPlugin;
@@ -41,7 +39,6 @@ impl Plugin for GamePlugin {
             LoadingPlugin,
             MenuPlugin,
             MapPlugin,
-            AgentPlugin,
             PiecePlugin,
             InputPlugin,
             AnimationPlugin,

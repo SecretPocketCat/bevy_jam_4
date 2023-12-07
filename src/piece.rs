@@ -1,6 +1,6 @@
 use crate::{
     animation::{get_relative_translation_anim, get_translation_anim},
-    map::{HexData, Ingredient, PlacedHexes, WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
+    map::{Ingredient, PlacedHex, WorldLayout, WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
     math::{asymptotic_smoothing, asymptotic_smoothing_with_delta_time},
     GameState,
 };
@@ -15,7 +15,7 @@ use hexx::Hex;
 
 #[derive(Component)]
 struct Piece {
-    hexes: HashMap<Hex, HexData>,
+    hexes: HashMap<Hex, PlacedHex>,
     target_hex: Option<Hex>,
 }
 
@@ -59,16 +59,16 @@ fn spawn_piece(
                 hexes: [
                     (
                         Hex::ZERO,
-                        HexData {
+                        PlacedHex {
                             ingredient: Ingredient::Ginger,
                             color: Color::ORANGE,
                         },
                     ),
                     (
                         Hex::X,
-                        HexData {
+                        PlacedHex {
                             ingredient: Ingredient::Honey,
-                            color: Color::GREEN,
+                            color: Color::ORANGE,
                         },
                     ),
                 ]
@@ -102,8 +102,8 @@ fn drag_piece(
     target_q: Query<(&Parent, &Transform), Without<Piece>>,
     mut piece_q: Query<(&mut Transform, &InitialPosition, &mut Piece)>,
     map: Res<WorldMap>,
+    map_layout: Res<WorldLayout>,
     camera_q: Query<(&Camera, &GlobalTransform)>,
-    placed: Res<PlacedHexes>,
 ) {
     let (camera, cam_transform) = camera_q.single();
 
@@ -115,9 +115,8 @@ fn drag_piece(
                     .viewport_to_world_2d(cam_transform, ev.pointer_location.position)
                     .unwrap();
 
-                let target_hex = map
-                    .layout
-                    .world_pos_to_hex(cursor_pos - target_t.translation.truncate());
+                let target_hex =
+                    map_layout.world_pos_to_hex(cursor_pos - target_t.translation.truncate());
 
                 if let Some(hex) = piece.target_hex {
                     if target_hex == hex {
@@ -126,14 +125,14 @@ fn drag_piece(
                 }
 
                 if piece.hexes.keys().all(|h| {
-                    map.entities.contains_key(&(target_hex + *h))
-                        && !placed.placed.contains_key(&(target_hex + *h))
+                    map.get(&(target_hex + *h))
+                        .map_or(false, |map_hex| map_hex.placed.is_none())
                 }) {
                     piece.target_hex = Some(target_hex);
 
                     cmd.entity(parent.get()).insert(get_translation_anim(
                         None,
-                        map.layout
+                        map_layout
                             .hex_to_world_pos(target_hex)
                             .extend(piece_t.translation.z),
                         120,
@@ -155,24 +154,17 @@ fn drag_piece_end(
     parent_q: Query<&Parent>,
     children_q: Query<&Children>,
     mut piece_q: Query<(&Transform, &mut InitialPosition, &Piece)>,
-    map: Res<WorldMap>,
-    mut placed: ResMut<PlacedHexes>,
+    mut map: ResMut<WorldMap>,
+    map_layout: Res<WorldLayout>,
 ) {
     for ev in ev_r.read() {
         if let Ok(parent) = parent_q.get(ev.target) {
             if let Ok((t, mut initial_pos, piece)) = piece_q.get_mut(parent.get()) {
                 if let Some(hex) = piece.target_hex {
-                    initial_pos.0 = map.layout.hex_to_world_pos(hex).extend(t.translation.z);
+                    initial_pos.0 = map_layout.hex_to_world_pos(hex).extend(t.translation.z);
 
                     // place hexes
-                    // todo: check for lines
-                    placed.placed.extend(
-                        piece
-                            .hexes
-                            .clone()
-                            .into_iter()
-                            .map(|(key, val)| (hex + key, val)),
-                    );
+                    map.place_piece(hex, &piece.hexes);
 
                     // stop hexes from being pickable
                     if let Ok(children) = children_q.get(parent.get()) {
@@ -180,6 +172,9 @@ fn drag_piece_end(
                             cmd.entity(*child).insert(Pickable::IGNORE);
                         }
                     }
+
+                    // remove piece to spawn new ones
+                    cmd.entity(parent.get()).remove::<Piece>();
                 } else {
                     cmd.entity(parent.get()).insert(get_translation_anim(
                         None,

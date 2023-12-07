@@ -1,4 +1,6 @@
-# Basic loop
+# Todo
+
+## Basic loop
 
 - [x] spawn test piece
 - [x] move piece
@@ -9,9 +11,15 @@
 - [x] restore position on invalid drop
 - [x] place hex
 - [ ] randomize pieces
-- [ ] check for lines & add ingredients
+- [x] check for lines
+- [ ] clean map on clear
+- [ ] add ingredients on line clears
 
-# Extra
+## Scoring
+
+- [ ] multi-line multipliers (probly just double it?)
+
+## Extra
 
 - [ ] consider a (baking) minigame to finish the cookies
   - just a timer?
