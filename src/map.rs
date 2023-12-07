@@ -171,20 +171,20 @@ fn setup_grid(
                     material: default_material.clone(),
                     ..default()
                 })
-                .with_children(|b| {
-                    b.spawn(Text2dBundle {
-                        text: Text::from_section(
-                            format!("{},{}", hex.x, hex.y),
-                            TextStyle {
-                                font_size: 17.0,
-                                color: Color::BLACK,
-                                ..default()
-                            },
-                        ),
-                        transform: Transform::from_xyz(0.0, 0.0, 10.0),
-                        ..default()
-                    });
-                })
+                // .with_children(|b| {
+                //     b.spawn(Text2dBundle {
+                //         text: Text::from_section(
+                //             format!("{},{}", hex.x, hex.y),
+                //             TextStyle {
+                //                 font_size: 17.0,
+                //                 color: Color::BLACK,
+                //                 ..default()
+                //             },
+                //         ),
+                //         transform: Transform::from_xyz(0.0, 0.0, 10.0),
+                //         ..default()
+                //     });
+                // })
                 .id();
             (hex, MapHex::new(entity))
         })
