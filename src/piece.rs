@@ -1,5 +1,8 @@
+use std::marker::PhantomData;
+
 use crate::{
     animation::{get_relative_translation_anim, get_translation_anim},
+    cooldown::{Cooldown, Rotating},
     input::GameAction,
     map::{HexData, Ingredient, WorldLayout, WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
     math::{asymptotic_smoothing, asymptotic_smoothing_with_delta_time},
@@ -71,12 +74,21 @@ pub struct PiecePlugin;
 impl Plugin for PiecePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PieceBlueprints>()
+            .init_resource::<HoveredPiece>()
             .add_plugins(DefaultPickingPlugins)
             .add_systems(
                 Update,
-                (spawn_piece, drag_piece, drag_piece_end, rotate_piece).distributive_run_if(
-                    in_state(GameState::Playing).and_then(resource_exists::<WorldMap>()),
-                ),
+                (
+                    spawn_piece,
+                    drag_piece,
+                    drag_piece_end,
+                    rotate_piece,
+                    over_piece,
+                    out_piece,
+                )
+                    .distributive_run_if(
+                        in_state(GameState::Playing).and_then(resource_exists::<WorldMap>()),
+                    ),
             );
     }
 }
@@ -249,7 +261,7 @@ fn drag_piece_end(
                     cmd.entity(parent.get()).insert(get_translation_anim(
                         None,
                         initial_pos.0,
-                        220,
+                        250,
                         EaseFunction::QuadraticOut,
                     ));
                 }
@@ -258,33 +270,80 @@ fn drag_piece_end(
     }
 }
 
-// todo: only if selected
+#[derive(Resource, Default, Deref, DerefMut)]
+struct HoveredPiece(Option<Entity>);
+
+fn over_piece(
+    mut ev_r: EventReader<Pointer<Over>>,
+    parent_q: Query<&Parent>,
+    mut hovered: ResMut<HoveredPiece>,
+) {
+    for ev in ev_r.read() {
+        if let Ok(parent) = parent_q.get(ev.target) {
+            hovered.0 = Some(parent.get());
+        }
+    }
+}
+
+fn out_piece(
+    mut ev_r: EventReader<Pointer<Out>>,
+    parent_q: Query<&Parent>,
+    mut hovered: ResMut<HoveredPiece>,
+) {
+    for ev in ev_r.read() {
+        if let Ok(parent) = parent_q.get(ev.target) {
+            if let Some(e) = hovered.0 {
+                if e == parent.get() {
+                    hovered.take();
+                }
+            }
+        }
+    }
+}
+
 fn rotate_piece(
     mut cmd: Commands,
-    mut piece_q: Query<&mut Piece>,
+    mut piece_q: Query<&mut Piece, Without<Cooldown<Rotating>>>,
+    hovered: Res<HoveredPiece>,
     map_layout: Res<WorldLayout>,
     input: Res<ActionState<GameAction>>,
 ) {
+    let mut rotate_cw = None;
+
     if input.just_pressed(GameAction::RotateCw) {
-        for mut piece in piece_q.iter_mut() {
-            piece.hexes = piece
-                .hexes
-                .drain()
-                .map(|(hex, data)| {
-                    let rotated_hex = hex.clockwise();
+        rotate_cw = Some(true);
+    } else if input.just_pressed(GameAction::RotateCcw) {
+        rotate_cw = Some(false);
+    }
 
-                    if hex != Hex::ZERO {
-                        cmd.entity(data.entity).insert(get_translation_anim(
-                            None,
-                            map_layout.hex_to_world_pos(rotated_hex).extend(0.),
-                            350,
-                            EaseFunction::BackInOut,
-                        ));
-                    };
+    if let Some(clockwise) = rotate_cw {
+        if let Some(e) = hovered.0 {
+            if let Ok(mut piece) = piece_q.get_mut(e) {
+                piece.hexes = piece
+                    .hexes
+                    .drain()
+                    .map(|(hex, data)| {
+                        let rotated_hex = if clockwise {
+                            hex.clockwise()
+                        } else {
+                            hex.counter_clockwise()
+                        };
 
-                    (rotated_hex, data)
-                })
-                .collect();
+                        if hex != Hex::ZERO {
+                            cmd.entity(data.entity).insert(get_translation_anim(
+                                None,
+                                map_layout.hex_to_world_pos(rotated_hex).extend(0.),
+                                350,
+                                EaseFunction::BackInOut,
+                            ));
+                        };
+
+                        (rotated_hex, data)
+                    })
+                    .collect();
+
+                cmd.entity(e).insert(Cooldown::<Rotating>::new(300));
+            }
         }
     }
 }

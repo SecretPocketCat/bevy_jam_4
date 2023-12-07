@@ -2,6 +2,7 @@
 #![allow(unused_imports)]
 
 mod animation;
+mod cooldown;
 mod input;
 mod loading;
 mod map;
@@ -15,6 +16,7 @@ use crate::menu::MenuPlugin;
 use crate::piece::PiecePlugin;
 use animation::AnimationPlugin;
 use bevy::prelude::*;
+use cooldown::CooldownPlugin;
 use input::InputPlugin;
 use map::MapPlugin;
 use mouse::CursorPlugin;
@@ -45,6 +47,7 @@ impl Plugin for GamePlugin {
             InputPlugin,
             CursorPlugin,
             AnimationPlugin,
+            CooldownPlugin,
         ));
     }
 }
