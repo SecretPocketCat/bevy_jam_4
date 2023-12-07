@@ -90,9 +90,9 @@ fn spawn_piece(
                         transform: Transform::from_xyz(x, 0., 0.),
                         ..default()
                     },
-                    PickableBundle::default(),
-                    On::<Pointer<DragStart>>::target_insert(Pickable::IGNORE), // Disable picking
-                    On::<Pointer<DragEnd>>::target_insert(Pickable::default()), // Re-enable picking
+                    // PickableBundle::default(),
+                    // On::<Pointer<DragStart>>::target_insert(Pickable::IGNORE), // Disable picking
+                    // On::<Pointer<DragEnd>>::target_insert(Pickable::default()), // Re-enable picking
                 ));
             }
         });
@@ -156,6 +156,7 @@ fn drag_piece_end(
     mut cmd: Commands,
     mut ev_r: EventReader<Pointer<DragEnd>>,
     parent_q: Query<&Parent>,
+    children_q: Query<&Children>,
     mut piece_q: Query<(&Transform, &mut InitialPosition, &Piece)>,
     map: Res<WorldMap>,
     mut placed: ResMut<PlacedHexes>,
@@ -165,8 +166,9 @@ fn drag_piece_end(
             if let Ok((t, mut initial_pos, piece)) = piece_q.get_mut(parent.get()) {
                 if let Some(hex) = piece.target_hex {
                     initial_pos.0 = map.layout.hex_to_world_pos(hex).extend(t.translation.z);
-                    // todo: this seems wrong
-                    // actually have to use offset hexes
+
+                    // place hexes
+                    // todo: check for lines
                     placed.placed.extend(
                         piece
                             .hexes
@@ -174,6 +176,13 @@ fn drag_piece_end(
                             .into_iter()
                             .map(|(key, val)| (hex + key, val)),
                     );
+
+                    // stop hexes from being pickable
+                    if let Ok(children) = children_q.get(parent.get()) {
+                        for child in children.iter() {
+                            cmd.entity(*child).insert(Pickable::IGNORE);
+                        }
+                    }
                 } else {
                     cmd.entity(parent.get()).insert(get_translation_anim(
                         None,

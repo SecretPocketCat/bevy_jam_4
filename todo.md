@@ -7,6 +7,7 @@
 - [x] don't snap when placement is not possible (hexes occupied)
 - [x] tween snapping
 - [x] restore position on invalid drop
+- [x] place hex
 - [ ] randomize pieces
 - [ ] check for lines & add ingredients
 
