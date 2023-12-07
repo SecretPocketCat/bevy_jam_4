@@ -31,11 +31,7 @@ pub struct WorldLayout(HexLayout);
 pub struct WorldMap(HashMap<Hex, MapHex>);
 
 impl WorldMap {
-    pub fn place_piece(
-        &mut self,
-        hex: Hex,
-        piece_hexes: &HashMap<Hex, PlacedHex>,
-    ) -> Vec<Vec<Hex>> {
+    pub fn place_piece(&mut self, hex: Hex, piece_hexes: &HashMap<Hex, HexData>) -> Vec<Vec<Hex>> {
         let cleared_lines = Vec::new();
 
         let placed_hexes: Vec<_> = piece_hexes
@@ -111,7 +107,7 @@ impl WorldMap {
 #[derive(Clone, Debug)]
 pub struct MapHex {
     pub entity: Entity,
-    pub placed: Option<PlacedHex>,
+    pub placed: Option<HexData>,
 }
 
 impl MapHex {
@@ -139,9 +135,10 @@ pub enum Ingredient {
 // }
 
 #[derive(Component, Clone, Debug)]
-pub struct PlacedHex {
+pub struct HexData {
     pub ingredient: Ingredient,
     pub color: Color,
+    pub entity: Entity,
 }
 
 fn setup_grid(
