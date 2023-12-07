@@ -2,12 +2,14 @@ use crate::{
     animation::{get_relative_translation_anim, get_translation_anim},
     map::{Ingredient, PlacedHex, WorldLayout, WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
     math::{asymptotic_smoothing, asymptotic_smoothing_with_delta_time},
+    mouse::CursorPosition,
     GameState,
 };
 use bevy::{
     prelude::*,
     sprite::MaterialMesh2dBundle,
     utils::{info, HashMap},
+    window::PrimaryWindow,
 };
 use bevy_mod_picking::prelude::*;
 use bevy_tweening::EaseFunction;
@@ -87,10 +89,6 @@ fn spawn_piece(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     if piece_q.iter().len() < 1 {
-        // create a piece
-        // todo: determine size (weighted)
-        let size = 2;
-
         let mut rng = thread_rng();
         let blueprint = &blueprints.blueprints[blueprints.weighted_index.sample(&mut rng)];
 
@@ -170,20 +168,13 @@ fn drag_piece(
     mut piece_q: Query<(&mut Transform, &InitialPosition, &mut Piece)>,
     map: Res<WorldMap>,
     map_layout: Res<WorldLayout>,
-    camera_q: Query<(&Camera, &GlobalTransform)>,
+    cursor_pos: Res<CursorPosition>,
 ) {
-    let (camera, cam_transform) = camera_q.single();
-
     for ev in ev_r.read() {
         if let Ok((parent, target_t)) = target_q.get(ev.target) {
             if let Ok((mut piece_t, initial_pos, mut piece)) = piece_q.get_mut(parent.get()) {
-                // todo: make this a resource
-                let cursor_pos = camera
-                    .viewport_to_world_2d(cam_transform, ev.pointer_location.position)
-                    .unwrap();
-
                 let target_hex =
-                    map_layout.world_pos_to_hex(cursor_pos - target_t.translation.truncate());
+                    map_layout.world_pos_to_hex(cursor_pos.0 - target_t.translation.truncate());
 
                 if let Some(hex) = piece.target_hex {
                     if target_hex == hex {

@@ -7,6 +7,7 @@ mod loading;
 mod map;
 mod math;
 mod menu;
+mod mouse;
 mod piece;
 
 use crate::loading::LoadingPlugin;
@@ -16,6 +17,7 @@ use animation::AnimationPlugin;
 use bevy::prelude::*;
 use input::InputPlugin;
 use map::MapPlugin;
+use mouse::CursorPlugin;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -41,6 +43,7 @@ impl Plugin for GamePlugin {
             MapPlugin,
             PiecePlugin,
             InputPlugin,
+            CursorPlugin,
             AnimationPlugin,
         ));
     }
