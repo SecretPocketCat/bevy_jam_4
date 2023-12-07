@@ -106,18 +106,11 @@ fn spawn_piece(
         let mut rng = thread_rng();
         let blueprint = &blueprints.blueprints[blueprints.weighted_index.sample(&mut rng)];
 
-        let colors: Vec<_> = blueprints.colors.choose_multiple(&mut rng, 2).collect();
-        let ingredients = Ingredient::iter().choose_multiple(&mut rng, 2);
+        let colors: Vec<_> = blueprints.colors.choose_multiple(&mut rng, 3).collect();
 
         let placed: Vec<_> = blueprint
             .iter()
-            .map(|h| {
-                (
-                    *h,
-                    **colors.choose(&mut rng).unwrap(),
-                    *ingredients.choose(&mut rng).unwrap(),
-                )
-            })
+            .map(|h| (*h, **colors.choose(&mut rng).unwrap()))
             .collect();
 
         // todo: determine distribution for the size
@@ -126,7 +119,7 @@ fn spawn_piece(
 
         let placed: HashMap<_, _> = placed
             .iter()
-            .map(|(hex, color, ingredient)| {
+            .map(|(hex, color)| {
                 let entity = cmd
                     .spawn((
                         MaterialMesh2dBundle {
@@ -141,20 +134,6 @@ fn spawn_piece(
                         },
                         PickableBundle::default(),
                     ))
-                    .with_children(|b| {
-                        b.spawn(Text2dBundle {
-                            text: Text::from_section(
-                                format!("{:?}", ingredient),
-                                TextStyle {
-                                    font_size: 17.0,
-                                    color: Color::WHITE,
-                                    ..default()
-                                },
-                            ),
-                            transform: Transform::from_xyz(0.0, 0.0, 10.0),
-                            ..default()
-                        });
-                    })
                     .id();
 
                 (
@@ -162,7 +141,6 @@ fn spawn_piece(
                     HexData {
                         entity,
                         color: *color,
-                        ingredient: *ingredient,
                     },
                 )
             })

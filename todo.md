@@ -16,6 +16,7 @@
 - [x] rotate around the hovered hex
 - [ ] finish map
 - [ ] add ingredients on line clears
+- [ ] remove ingredient from hex variant
 
 ## Scoring
 

@@ -55,25 +55,21 @@ impl WorldMap {
             let clear_count = 0;
 
             for line in self.lines(*placed_hex) {
-                let (color_match_count, ingredient_match_count) =
-                    line.iter().fold((0, 0), |mut acc, h| {
+                let color_match_count: usize = line
+                    .iter()
+                    .map(|h| {
                         if let Some(placed_hex) = self[h].placed.as_ref() {
-                            acc.0 += (placed_hex.color == placed_hex_data.color) as usize;
-                            acc.1 += (placed_hex.ingredient == placed_hex_data.ingredient) as usize;
+                            (placed_hex.color == placed_hex_data.color) as usize
+                        } else {
+                            0
                         }
-
-                        acc
-                    });
+                    })
+                    .sum();
 
                 let cleared_col = color_match_count == line.len();
-                let cleared_ingredient = ingredient_match_count == line.len();
 
                 if cleared_col {
                     info!("Cleared color line!");
-                }
-
-                if cleared_ingredient {
-                    info!("Cleared ingredient line!");
                 }
             }
 
@@ -140,7 +136,6 @@ pub enum Ingredient {
 
 #[derive(Component, Clone, Debug)]
 pub struct HexData {
-    pub ingredient: Ingredient,
     pub color: Color,
     pub entity: Entity,
 }
