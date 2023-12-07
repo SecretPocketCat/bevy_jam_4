@@ -1,7 +1,10 @@
 use std::marker::PhantomData;
 
 use crate::{
-    animation::{get_relative_translation_anim, get_translation_anim},
+    animation::{
+        delay_tween, get_relative_scale_anim, get_relative_translation_anim, get_scale_anim,
+        get_scale_tween, get_translation_anim, DespawnOnTweenCompleted,
+    },
     cooldown::{Cooldown, Rotating},
     input::GameAction,
     map::{HexData, Ingredient, WorldLayout, WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
@@ -16,7 +19,7 @@ use bevy::{
     window::PrimaryWindow,
 };
 use bevy_mod_picking::prelude::*;
-use bevy_tweening::EaseFunction;
+use bevy_tweening::{Animator, EaseFunction};
 use hexx::Hex;
 use leafwing_input_manager::prelude::*;
 use rand::{distributions::WeightedIndex, prelude::*};
@@ -95,7 +98,6 @@ impl Plugin for PiecePlugin {
 
 fn spawn_piece(
     mut cmd: Commands,
-    map: Res<WorldMap>,
     map_layout: Res<WorldLayout>,
     blueprints: Res<PieceBlueprints>,
     piece_q: Query<&Piece>,
@@ -104,62 +106,69 @@ fn spawn_piece(
 ) {
     if piece_q.iter().len() < 1 {
         let mut rng = thread_rng();
-        let blueprint = &blueprints.blueprints[blueprints.weighted_index.sample(&mut rng)];
 
-        let colors: Vec<_> = blueprints.colors.choose_multiple(&mut rng, 3).collect();
+        for y in [150., -150.] {
+            let blueprint = &blueprints.blueprints[blueprints.weighted_index.sample(&mut rng)];
 
-        let placed: Vec<_> = blueprint
-            .iter()
-            .map(|h| (*h, **colors.choose(&mut rng).unwrap()))
-            .collect();
+            let colors: Vec<_> = blueprints.colors.choose_multiple(&mut rng, 3).collect();
 
-        // todo: determine distribution for the size
+            let placed: Vec<_> = blueprint
+                .iter()
+                .map(|h| (*h, **colors.choose(&mut rng).unwrap()))
+                .collect();
 
-        // randomize rotation (if size > 1)
+            // todo: determine distribution for the size
 
-        let placed: HashMap<_, _> = placed
-            .iter()
-            .map(|(hex, color)| {
-                let entity = cmd
-                    .spawn((
-                        MaterialMesh2dBundle {
-                            mesh: meshes
-                                .add(shape::RegularPolygon::new(HEX_SIZE_INNER, 6).into())
-                                .into(),
-                            material: materials.add(ColorMaterial::from(*color)),
-                            transform: Transform::from_translation(
-                                map_layout.hex_to_world_pos(*hex).extend(0.),
-                            ),
-                            ..default()
+            // randomize rotation (if size > 1)
+
+            let placed: HashMap<_, _> = placed
+                .iter()
+                .map(|(hex, color)| {
+                    let entity = cmd
+                        .spawn((
+                            MaterialMesh2dBundle {
+                                mesh: meshes
+                                    .add(shape::RegularPolygon::new(HEX_SIZE_INNER, 6).into())
+                                    .into(),
+                                material: materials.add(ColorMaterial::from(*color)),
+                                transform: Transform::from_translation(
+                                    map_layout.hex_to_world_pos(*hex).extend(0.),
+                                ),
+                                ..default()
+                            },
+                            PickableBundle::default(),
+                        ))
+                        .id();
+
+                    (
+                        *hex,
+                        HexData {
+                            entity,
+                            color: *color,
                         },
-                        PickableBundle::default(),
-                    ))
-                    .id();
+                    )
+                })
+                .collect();
 
-                (
-                    *hex,
-                    HexData {
-                        entity,
-                        color: *color,
-                    },
-                )
-            })
-            .collect();
+            let children: Vec<_> = placed.values().map(|hex_data| hex_data.entity).collect();
 
-        let children: Vec<_> = placed.values().map(|hex_data| hex_data.entity).collect();
-
-        let pos = Vec3::new(0., 400., 1.);
-        cmd.spawn(SpatialBundle::from_transform(Transform::from_translation(
-            pos,
-        )))
-        .insert((
-            Piece {
-                hexes: placed,
-                target_hex: None,
-            },
-            InitialPosition(pos),
-        ))
-        .push_children(&children);
+            let pos = Vec3::new(450., y, 1.);
+            cmd.spawn(SpatialBundle::from_transform(
+                Transform::from_translation(pos).with_scale(Vec2::ZERO.extend(1.)),
+            ))
+            .insert((
+                Piece {
+                    hexes: placed,
+                    target_hex: None,
+                },
+                InitialPosition(pos),
+                Animator::new(delay_tween(
+                    get_scale_tween(None, Vec3::ONE, 300, EaseFunction::BackOut),
+                    150,
+                )),
+            ))
+            .push_children(&children);
+        }
     }
 }
 
@@ -213,13 +222,15 @@ fn drag_piece_end(
     mut ev_r: EventReader<Pointer<DragEnd>>,
     parent_q: Query<&Parent>,
     children_q: Query<&Children>,
-    mut piece_q: Query<(&Transform, &mut InitialPosition, &Piece)>,
+    mut piece_q: Query<(Entity, &Transform, &mut InitialPosition, &Piece)>,
     mut map: ResMut<WorldMap>,
     map_layout: Res<WorldLayout>,
 ) {
+    let mut placed_piece = None;
+
     for ev in ev_r.read() {
         if let Ok(parent) = parent_q.get(ev.target) {
-            if let Ok((t, mut initial_pos, piece)) = piece_q.get_mut(parent.get()) {
+            if let Ok((_, t, mut initial_pos, piece)) = piece_q.get_mut(parent.get()) {
                 if let Some(hex) = piece.target_hex {
                     initial_pos.0 = map_layout.hex_to_world_pos(hex).extend(t.translation.z);
 
@@ -235,6 +246,7 @@ fn drag_piece_end(
 
                     // remove piece to spawn new ones
                     cmd.entity(parent.get()).remove::<Piece>();
+                    placed_piece = Some(parent.get());
                 } else {
                     cmd.entity(parent.get()).insert(get_translation_anim(
                         None,
@@ -244,6 +256,19 @@ fn drag_piece_end(
                     ));
                 }
             }
+        }
+    }
+
+    if let Some(placed_e) = placed_piece {
+        for (e, ..) in piece_q.iter() {
+            if e == placed_e {
+                continue;
+            }
+
+            cmd.entity(e).insert((
+                get_scale_anim(None, Vec3::ZERO, 300, EaseFunction::BackIn),
+                DespawnOnTweenCompleted,
+            ));
         }
     }
 }

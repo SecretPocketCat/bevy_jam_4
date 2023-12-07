@@ -5,6 +5,7 @@ use crate::{
 use bevy::{
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
+    sprite::MaterialMesh2dBundle,
     utils::HashMap,
     window::PrimaryWindow,
 };
@@ -14,7 +15,7 @@ use strum::EnumIter;
 
 pub const MAP_RADIUS: u32 = 3;
 pub const HEX_SIZE: f32 = 50.;
-pub const HEX_SIZE_INNER_MULT: f32 = 0.95;
+pub const HEX_SIZE_INNER_MULT: f32 = 0.925;
 pub const HEX_SIZE_INNER: f32 = HEX_SIZE * HEX_SIZE_INNER_MULT;
 
 // https://www.redblobgames.com/grids/hexagons/#basics
@@ -152,7 +153,8 @@ fn setup_grid(
     };
 
     // materials
-    let default_material = materials.add(Color::WHITE.into());
+    let border_material = materials.add(Color::DARK_GRAY.into());
+    let default_material = materials.add(Color::ANTIQUE_WHITE.into());
 
     // mesh
     let mesh = hexagonal_plane(&layout);
@@ -167,7 +169,7 @@ fn setup_grid(
                     ColorMesh2dBundle {
                         transform: Transform::from_xyz(pos.x, pos.y, 0.0),
                         mesh: mesh_handle.clone().into(),
-                        material: default_material.clone(),
+                        material: border_material.clone(),
                         ..default()
                     },
                     Animator::new(delay_tween(
@@ -184,20 +186,28 @@ fn setup_grid(
                         hex_len * 80,
                     )),
                 ))
-                // .with_children(|b| {
-                //     b.spawn(Text2dBundle {
-                //         text: Text::from_section(
-                //             format!("{},{}", hex.x, hex.y),
-                //             TextStyle {
-                //                 font_size: 17.0,
-                //                 color: Color::BLACK,
-                //                 ..default()
-                //             },
-                //         ),
-                //         transform: Transform::from_xyz(0.0, 0.0, 10.0),
-                //         ..default()
-                //     });
-                // })
+                .with_children(|b| {
+                    b.spawn(MaterialMesh2dBundle {
+                        mesh: meshes
+                            .add(shape::RegularPolygon::new(HEX_SIZE_INNER, 6).into())
+                            .into(),
+                        material: default_material.clone(),
+                        transform: Transform::from_xyz(0., 0., 0.1),
+                        ..default()
+                    });
+                    // b.spawn(Text2dBundle {
+                    //     text: Text::from_section(
+                    //         format!("{},{}", hex.x, hex.y),
+                    //         TextStyle {
+                    //             font_size: 17.0,
+                    //             color: Color::BLACK,
+                    //             ..default()
+                    //         },
+                    //     ),
+                    //     transform: Transform::from_xyz(0.0, 0.0, 10.0),
+                    //     ..default()
+                    // });
+                })
                 .id();
             (hex, MapHex::new(entity))
         })
@@ -211,7 +221,7 @@ fn setup_grid(
 fn hexagonal_plane(hex_layout: &HexLayout) -> Mesh {
     let mesh_info = PlaneMeshBuilder::new(hex_layout)
         .facing(Vec3::Z)
-        .with_scale(Vec3::splat(HEX_SIZE_INNER_MULT))
+        .with_scale(Vec3::splat(1.075))
         .build();
 
     Mesh::new(PrimitiveTopology::TriangleList)

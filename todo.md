@@ -14,6 +14,8 @@
 - [x] check for lines
 - [x] rotate pieces
 - [x] rotate around the hovered hex
+- [ ] spawn 2 options
+- [ ] spawn next options, but not draggable
 - [ ] finish map
 - [ ] add ingredients on line clears
 - [ ] remove ingredient from hex variant
@@ -29,3 +31,8 @@
   - push your luck?
 - [ ] refresh snapping on rotation
 - [ ] fix pieces moving on rotation (tween them back)
+
+## Story
+
+Flavoured honeycomb sticks
+The bees got drunk on mead and mixed them up.
