@@ -27,3 +27,4 @@
   - just a timer?
   - push your luck?
 - [ ] refresh snapping on rotation
+- [ ] fix pieces moving on rotation (tween them back)

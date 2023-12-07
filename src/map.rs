@@ -1,10 +1,14 @@
-use crate::GameState;
+use crate::{
+    animation::{delay_tween, get_scale_anim, get_scale_tween},
+    GameState,
+};
 use bevy::{
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
     utils::HashMap,
     window::PrimaryWindow,
 };
+use bevy_tweening::{Animator, EaseFunction};
 use hexx::{shapes, *};
 use strum::EnumIter;
 
@@ -162,13 +166,29 @@ fn setup_grid(
     let hexes = shapes::hexagon(Hex::ZERO, MAP_RADIUS)
         .map(|hex| {
             let pos = layout.hex_to_world_pos(hex);
+            let hex_len = hex.ulength() as u64;
             let entity = commands
-                .spawn(ColorMesh2dBundle {
-                    transform: Transform::from_xyz(pos.x, pos.y, 0.0),
-                    mesh: mesh_handle.clone().into(),
-                    material: default_material.clone(),
-                    ..default()
-                })
+                .spawn((
+                    ColorMesh2dBundle {
+                        transform: Transform::from_xyz(pos.x, pos.y, 0.0),
+                        mesh: mesh_handle.clone().into(),
+                        material: default_material.clone(),
+                        ..default()
+                    },
+                    Animator::new(delay_tween(
+                        get_scale_tween(
+                            Some(Vec2::ZERO.extend(1.)),
+                            Vec3::ONE,
+                            350,
+                            if hex_len == MAP_RADIUS as u64 {
+                                EaseFunction::BackOut
+                            } else {
+                                EaseFunction::QuadraticOut
+                            },
+                        ),
+                        hex_len * 80,
+                    )),
+                ))
                 // .with_children(|b| {
                 //     b.spawn(Text2dBundle {
                 //         text: Text::from_section(
