@@ -343,6 +343,10 @@ fn rotate_piece(
                     .collect();
 
                 cmd.entity(e).insert(Cooldown::<Rotating>::new(300));
+
+                // todo: do this properly
+                // this will at least prevent placing the piece, but rotating without movement will mean the piece will stay in the same place
+                piece.target_hex.take();
             }
         }
     }

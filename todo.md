@@ -12,7 +12,7 @@
 - [x] place hex
 - [x] randomize pieces
 - [x] check for lines
-- [ ] rotate pieces
+- [x] rotate pieces
 - [ ] finish map
 - [ ] add ingredients on line clears
 
@@ -25,3 +25,4 @@
 - [ ] consider a (baking) minigame to finish the cookies
   - just a timer?
   - push your luck?
+- [ ] refresh snapping on rotation
