@@ -13,6 +13,7 @@
 - [x] randomize pieces
 - [x] check for lines
 - [x] rotate pieces
+- [x] rotate around the hovered hex
 - [ ] finish map
 - [ ] add ingredients on line clears
 

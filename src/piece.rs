@@ -270,8 +270,13 @@ fn drag_piece_end(
     }
 }
 
+struct HoveredPieceEntities {
+    piece_e: Entity,
+    hex_e: Entity,
+}
+
 #[derive(Resource, Default, Deref, DerefMut)]
-struct HoveredPiece(Option<Entity>);
+struct HoveredPiece(Option<HoveredPieceEntities>);
 
 fn over_piece(
     mut ev_r: EventReader<Pointer<Over>>,
@@ -280,7 +285,10 @@ fn over_piece(
 ) {
     for ev in ev_r.read() {
         if let Ok(parent) = parent_q.get(ev.target) {
-            hovered.0 = Some(parent.get());
+            hovered.0 = Some(HoveredPieceEntities {
+                piece_e: parent.get(),
+                hex_e: ev.target,
+            });
         }
     }
 }
@@ -292,8 +300,8 @@ fn out_piece(
 ) {
     for ev in ev_r.read() {
         if let Ok(parent) = parent_q.get(ev.target) {
-            if let Some(e) = hovered.0 {
-                if e == parent.get() {
+            if let Some(e) = &hovered.0 {
+                if e.piece_e == parent.get() {
                     hovered.take();
                 }
             }
@@ -317,32 +325,37 @@ fn rotate_piece(
     }
 
     if let Some(clockwise) = rotate_cw {
-        if let Some(e) = hovered.0 {
-            if let Ok(mut piece) = piece_q.get_mut(e) {
+        if let Some(e) = &hovered.0 {
+            if let Ok(mut piece) = piece_q.get_mut(e.piece_e) {
+                let center_hex = *piece
+                    .hexes
+                    .iter()
+                    .find(|(_, data)| data.entity == e.hex_e)
+                    .unwrap()
+                    .0;
+
                 piece.hexes = piece
                     .hexes
                     .drain()
                     .map(|(hex, data)| {
                         let rotated_hex = if clockwise {
-                            hex.clockwise()
+                            hex.cw_around(center_hex)
                         } else {
-                            hex.counter_clockwise()
+                            hex.ccw_around(center_hex)
                         };
 
-                        if hex != Hex::ZERO {
-                            cmd.entity(data.entity).insert(get_translation_anim(
-                                None,
-                                map_layout.hex_to_world_pos(rotated_hex).extend(0.),
-                                350,
-                                EaseFunction::BackInOut,
-                            ));
-                        };
+                        cmd.entity(data.entity).insert(get_translation_anim(
+                            None,
+                            map_layout.hex_to_world_pos(rotated_hex).extend(0.),
+                            350,
+                            EaseFunction::BackInOut,
+                        ));
 
                         (rotated_hex, data)
                     })
                     .collect();
 
-                cmd.entity(e).insert(Cooldown::<Rotating>::new(300));
+                cmd.entity(e.piece_e).insert(Cooldown::<Rotating>::new(300));
 
                 // todo: do this properly
                 // this will at least prevent placing the piece, but rotating without movement will mean the piece will stay in the same place
