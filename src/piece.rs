@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use crate::{
     animation::{
         delay_tween, get_relative_scale_anim, get_relative_translation_anim, get_scale_anim,
@@ -7,7 +5,8 @@ use crate::{
     },
     cooldown::{Cooldown, Rotating},
     input::GameAction,
-    map::{HexData, Ingredient, WorldLayout, WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
+    loading::TextureAssets,
+    map::{HexData, WorldLayout, WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
     math::{asymptotic_smoothing, asymptotic_smoothing_with_delta_time},
     mouse::CursorPosition,
     GameState,
@@ -15,6 +14,7 @@ use crate::{
 use bevy::{
     prelude::*,
     sprite::MaterialMesh2dBundle,
+    ui::debug,
     utils::{info, HashMap},
     window::PrimaryWindow,
 };
@@ -23,43 +23,55 @@ use bevy_tweening::{Animator, EaseFunction};
 use hexx::Hex;
 use leafwing_input_manager::prelude::*;
 use rand::{distributions::WeightedIndex, prelude::*};
+use std::{f32::consts::E, marker::PhantomData};
 use strum::IntoEnumIterator;
 
-#[derive(Debug, Resource)]
-struct PieceBlueprints {
-    blueprints: Vec<Vec<Hex>>,
-    weighted_index: WeightedIndex<u8>,
-    colors: [Color; 5],
+#[derive(Debug, Clone)]
+struct RouteHexBlueprint {
+    connected_sides: [bool; 6],
+    atlas_index: usize,
+    weight: u8,
 }
 
-impl Default for PieceBlueprints {
-    fn default() -> Self {
-        let blueprints = vec![
-            (vec![Hex::ZERO], 2),
-            (vec![Hex::ZERO, Hex::X], 4),
-            (vec![Hex::ZERO, Hex::X, Hex::Y], 3),
-            (vec![Hex::ZERO, Hex::X, Hex::ONE], 1),
-            (vec![Hex::ZERO, Hex::X, Hex::new(-1, 1)], 1),
-            (vec![Hex::ZERO, Hex::X, Hex::X * 2], 2),
-            (vec![Hex::ZERO, Hex::X, Hex::Y, Hex::ONE], 1),
-            // (vec![Hex::ZERO, Hex::X, Hex::X * 2, Hex::X * 3], 1),
-            (vec![Hex::ZERO, Hex::X, Hex::X * 2, Hex::Y], 1),
-            (vec![Hex::ZERO, Hex::X, Hex::X * 2, Hex::ONE], 1),
-        ];
+#[derive(Debug, Resource)]
+struct HexBlueprints {
+    hexes: Vec<RouteHexBlueprint>,
+    weighted_index: WeightedIndex<u8>,
+    size_weighted_index: WeightedIndex<u8>,
+}
 
-        let weights: Vec<_> = blueprints.iter().map(|(_, weight)| *weight).collect();
-        let weighted_index = WeightedIndex::new(weights).unwrap();
+impl Default for HexBlueprints {
+    fn default() -> Self {
+        // these go clockwise from the top-right edge (pointy hexes)
+        let blueprints: Vec<_> = [
+            ([false, true, true, false, false, false], 4),
+            ([false, true, false, true, false, false], 4),
+            ([false, true, false, false, true, false], 4),
+            ([false, true, true, true, false, false], 3),
+            ([false, true, false, true, true, false], 3),
+            ([false, true, true, false, true, false], 3),
+            ([false, true, false, true, false, true], 3),
+            ([false, true, true, true, true, false], 1),
+            ([false, true, true, false, true, true], 1),
+            ([true, true, true, true, true, true], 0),
+        ]
+        .into_iter()
+        .enumerate()
+        .map(
+            |(atlas_index, (connected_sides, weight))| RouteHexBlueprint {
+                connected_sides,
+                weight,
+                atlas_index,
+            },
+        )
+        .collect();
+
+        let weighted_index = WeightedIndex::new(blueprints.iter().map(|h| h.weight)).unwrap();
 
         Self {
-            blueprints: blueprints.into_iter().map(|bp| bp.0).collect(),
+            hexes: blueprints,
             weighted_index,
-            colors: [
-                Color::CRIMSON,
-                Color::ORANGE,
-                Color::YELLOW_GREEN,
-                Color::BLACK,
-                Color::NAVY,
-            ],
+            size_weighted_index: WeightedIndex::new([2, 3 /* , 1*/]).unwrap(),
         }
     }
 }
@@ -76,7 +88,7 @@ struct InitialPosition(Vec3);
 pub struct PiecePlugin;
 impl Plugin for PiecePlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<PieceBlueprints>()
+        app.init_resource::<HexBlueprints>()
             .init_resource::<HoveredPiece>()
             .add_plugins(DefaultPickingPlugins)
             .add_systems(
@@ -99,59 +111,87 @@ impl Plugin for PiecePlugin {
 fn spawn_piece(
     mut cmd: Commands,
     map_layout: Res<WorldLayout>,
-    blueprints: Res<PieceBlueprints>,
+    blueprints: Res<HexBlueprints>,
     piece_q: Query<&Piece>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    sprites: Res<TextureAssets>,
 ) {
     if piece_q.iter().len() < 1 {
         let mut rng = thread_rng();
 
         for y in [200., 0., -200.] {
-            let blueprint = &blueprints.blueprints[blueprints.weighted_index.sample(&mut rng)];
+            let size = blueprints.size_weighted_index.sample(&mut rng) + 1;
+            let mut placed = HashMap::with_capacity(3);
 
-            let colors: Vec<_> = blueprints.colors.choose_multiple(&mut rng, 3).collect();
+            for i in 0..size {
+                let mut blueprint =
+                    (&blueprints.hexes[blueprints.weighted_index.sample(&mut rng)]).clone();
+                let rotation_side = (0..6).choose(&mut rng).unwrap();
 
-            let placed: Vec<_> = blueprint
-                .iter()
-                .map(|h| (*h, **colors.choose(&mut rng).unwrap()))
-                .collect();
+                if rotation_side > 0 {
+                    blueprint.connected_sides.rotate_right(rotation_side);
+                }
 
-            // todo: determine distribution for the size
+                let mut blueprint = Some(&blueprint);
+                let mut hex = Hex::ZERO;
 
-            // randomize rotation (if size > 1)
+                // todo: randomize rotation
 
-            let placed: HashMap<_, _> = placed
-                .iter()
-                .map(|(hex, color)| {
-                    let entity = cmd
-                        .spawn((
-                            MaterialMesh2dBundle {
-                                mesh: meshes
-                                    .add(shape::RegularPolygon::new(HEX_SIZE_INNER, 6).into())
-                                    .into(),
-                                material: materials.add(ColorMaterial::from(*color)),
-                                transform: Transform::from_translation(
-                                    map_layout.hex_to_world_pos(*hex).extend(0.),
+                if i > 0 {
+                    if rng.gen_bool(0.5) {
+                        blueprint.take();
+
+                        // todo: find valid neighbour - free edges
+                        hex = Hex::X;
+                    } else {
+                        // todo: find valid neighbour - connect routes or free edges
+                        hex = Hex::X;
+                    }
+                };
+
+                let entity = cmd
+                    .spawn((
+                        SpriteSheetBundle {
+                            transform: Transform {
+                                translation: map_layout.hex_to_world_pos(hex).extend(0.),
+                                rotation: Quat::from_rotation_z(
+                                    (rotation_side as f32 * 60.).to_radians(),
                                 ),
                                 ..default()
                             },
-                            PickableBundle::default(),
-                        ))
-                        .id();
+                            sprite: TextureAtlasSprite::new(blueprint.map_or(
+                                10, // empty hex index
+                                |h| h.atlas_index,
+                            )),
+                            texture_atlas: sprites.tiles.clone(),
+                            ..default()
+                        }, // MaterialMesh2dBundle {
+                        //     mesh: meshes
+                        //         .add(shape::RegularPolygon::new(HEX_SIZE_INNER, 6).into())
+                        //         .into(),
+                        //     material: materials.add(ColorMaterial::from(*color)),
+                        //     transform: Transform::from_translation(
+                        //         map_layout.hex_to_world_pos(*hex).extend(0.),
+                        //     ),
+                        //     ..default()
+                        // }
+                        PickableBundle::default(),
+                    ))
+                    .id();
 
-                    (
-                        *hex,
-                        HexData {
-                            entity,
-                            color: *color,
-                        },
-                    )
-                })
-                .collect();
+                placed.insert(
+                    hex,
+                    HexData {
+                        entity,
+                        connected_sides: blueprint.map(|bp| bp.connected_sides.clone()),
+                    },
+                );
+            }
 
             let children: Vec<_> = placed.values().map(|hex_data| hex_data.entity).collect();
 
+            // todo: raise z to prevent z-fighting
             let pos = Vec3::new(450., y, 1.);
             cmd.spawn(SpatialBundle::from_transform(
                 Transform::from_translation(pos).with_scale(Vec2::ZERO.extend(1.)),

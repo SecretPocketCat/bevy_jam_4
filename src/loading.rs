@@ -42,6 +42,16 @@ pub struct TextureAssets {
     pub bevy: Handle<Image>,
     #[asset(path = "textures/github.png")]
     pub github: Handle<Image>,
+    #[asset(texture_atlas(
+        tile_size_x = 82.,
+        tile_size_y = 92.,
+        columns = 7,
+        rows = 2,
+        padding_x = 29.,
+        padding_y = 7.,
+    ))]
+    #[asset(path = "tiles/tiles.png")]
+    pub tiles: Handle<TextureAtlas>,
 }
 
 fn spawn_cam(mut cmd: Commands) {

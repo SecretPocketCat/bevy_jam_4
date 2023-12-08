@@ -14,7 +14,7 @@ use hexx::{shapes, *};
 use strum::EnumIter;
 
 pub const MAP_RADIUS: u32 = 3;
-pub const HEX_SIZE: f32 = 50.;
+pub const HEX_SIZE: f32 = 46.;
 pub const HEX_SIZE_INNER_MULT: f32 = 0.925;
 pub const HEX_SIZE_INNER: f32 = HEX_SIZE * HEX_SIZE_INNER_MULT;
 
@@ -51,31 +51,31 @@ impl WorldMap {
             });
         }
 
-        for (placed_hex, placed_hex_data) in placed_hexes.iter() {
-            // line can be cleared twice (ingredient & color)
-            let clear_count = 0;
+        // for (placed_hex, placed_hex_data) in placed_hexes.iter() {
+        //     // line can be cleared twice (ingredient & color)
+        //     let clear_count = 0;
 
-            for line in self.lines(*placed_hex) {
-                let color_match_count: usize = line
-                    .iter()
-                    .map(|h| {
-                        if let Some(placed_hex) = self[h].placed.as_ref() {
-                            (placed_hex.color == placed_hex_data.color) as usize
-                        } else {
-                            0
-                        }
-                    })
-                    .sum();
+        //     for line in self.lines(*placed_hex) {
+        //         let color_match_count: usize = line
+        //             .iter()
+        //             .map(|h| {
+        //                 if let Some(placed_hex) = self[h].placed.as_ref() {
+        //                     (placed_hex.color == placed_hex_data.color) as usize
+        //                 } else {
+        //                     0
+        //                 }
+        //             })
+        //             .sum();
 
-                let cleared_col = color_match_count == line.len();
+        //         let cleared_col = color_match_count == line.len();
 
-                if cleared_col {
-                    info!("Cleared color line!");
-                }
-            }
+        //         if cleared_col {
+        //             info!("Cleared color line!");
+        //         }
+        //     }
 
-            // check lines for ingredient and/or color matches
-        }
+        //     // check lines for ingredient and/or color matches
+        // }
 
         cleared_lines
     }
@@ -120,24 +120,9 @@ impl MapHex {
     }
 }
 
-// todo
-#[derive(Copy, Clone, Debug, PartialEq, Eq, EnumIter)]
-pub enum Ingredient {
-    Honey,
-    Ginger,
-    Sugar,
-    Spices,
-    Frosting,
-}
-
-// // todo:
-// pub enum HexColor {
-
-// }
-
 #[derive(Component, Clone, Debug)]
 pub struct HexData {
-    pub color: Color,
+    pub connected_sides: Option<[bool; 6]>,
     pub entity: Entity,
 }
 

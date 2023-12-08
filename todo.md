@@ -18,6 +18,15 @@
 - [x] remove ingredient from hex variant
 - [ ] have to use 2 out of 3 pieces
 
+## Revamp to routes
+
+- [x] spawn from tilemap
+- [x] spawn either 1 or 2 connected route hexes or 1 route + 1 empty
+- [ ] properly connect 2 route hexes (route on route action)
+- [x] randomly rotate each hex
+- [ ] randomly pick hex decorations for the empty hex
+- [ ] try triple hex pieces (triangles - 1 to 3 route hexes?)
+
 ## Scoring
 
 - [ ] multi-line multipliers (probly just double it?)
