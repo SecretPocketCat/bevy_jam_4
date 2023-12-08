@@ -174,7 +174,7 @@ fn setup_grid(
                     },
                     Animator::new(delay_tween(
                         get_scale_tween(
-                            Some(Vec2::ZERO.extend(1.)),
+                            None,
                             Vec3::ONE,
                             350,
                             if hex_len == MAP_RADIUS as u64 {

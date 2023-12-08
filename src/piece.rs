@@ -107,7 +107,7 @@ fn spawn_piece(
     if piece_q.iter().len() < 1 {
         let mut rng = thread_rng();
 
-        for y in [150., -150.] {
+        for y in [200., 0., -200.] {
             let blueprint = &blueprints.blueprints[blueprints.weighted_index.sample(&mut rng)];
 
             let colors: Vec<_> = blueprints.colors.choose_multiple(&mut rng, 3).collect();

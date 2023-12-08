@@ -14,11 +14,9 @@
 - [x] check for lines
 - [x] rotate pieces
 - [x] rotate around the hovered hex
-- [ ] spawn 2 options
-- [ ] spawn next options, but not draggable
-- [ ] finish map
-- [ ] add ingredients on line clears
-- [ ] remove ingredient from hex variant
+- [x] spawn 3 options
+- [x] remove ingredient from hex variant
+- [ ] have to use 2 out of 3 pieces
 
 ## Scoring
 

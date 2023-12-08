@@ -1,5 +1,7 @@
 use bevy::{prelude::*, window::PrimaryWindow};
 
+use crate::loading::MainCam;
+
 #[derive(Debug, Resource, Deref, DerefMut, Default)]
 pub struct CursorPosition(pub Vec2);
 
@@ -14,7 +16,7 @@ impl Plugin for CursorPlugin {
 fn update_cursor_pos(
     mut cursor_pos: ResMut<CursorPosition>,
     window_q: Query<&Window, With<PrimaryWindow>>,
-    camera_q: Query<(&Camera, &GlobalTransform)>,
+    camera_q: Query<(&Camera, &GlobalTransform), With<MainCam>>,
 ) {
     let (camera, cam_transform) = camera_q.single();
     let window = window_q.single();
