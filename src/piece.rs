@@ -113,8 +113,6 @@ fn spawn_piece(
     map_layout: Res<WorldLayout>,
     blueprints: Res<HexBlueprints>,
     piece_q: Query<&Piece>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     sprites: Res<TextureAssets>,
 ) {
     if piece_q.iter().len() < 1 {
@@ -127,26 +125,46 @@ fn spawn_piece(
             for i in 0..size {
                 let mut blueprint =
                     (&blueprints.hexes[blueprints.weighted_index.sample(&mut rng)]).clone();
+
+                // randomize rotation
                 let rotation_side = (0..6).choose(&mut rng).unwrap();
 
                 if rotation_side > 0 {
-                    blueprint.connected_sides.rotate_right(rotation_side);
+                    blueprint.connected_sides.rotate_left(rotation_side);
                 }
 
                 let mut blueprint = Some(&blueprint);
                 let mut hex = Hex::ZERO;
 
-                // todo: randomize rotation
-
                 if i > 0 {
-                    if rng.gen_bool(0.5) {
-                        blueprint.take();
+                    let prev: &HexData = placed.values().last().unwrap();
 
-                        // todo: find valid neighbour - free edges
-                        hex = Hex::X;
-                    } else {
-                        // todo: find valid neighbour - connect routes or free edges
-                        hex = Hex::X;
+                    if i == 1 {
+                        let mut connected = false;
+
+                        if rng.gen_bool(0.5) {
+                            blueprint.take();
+                        } else {
+                            connected = rng.gen_bool(0.5);
+                        }
+
+                        let side = prev.connected_sides.map_or(None, |connected_sides| {
+                            connected_sides
+                                .iter()
+                                .enumerate()
+                                .find(|(side, conn)| {
+                                    **conn == connected
+                                        && blueprint.map_or(true, |bp| {
+                                            bp.connected_sides[(*side + 3) % 6] == connected
+                                        })
+                                })
+                                .map(|(side, _)| side)
+                        });
+
+                        match side {
+                            Some(side) => hex = Hex::new(1, -1).rotate_cw(side as u32),
+                            None => continue,
+                        }
                     }
                 };
 
