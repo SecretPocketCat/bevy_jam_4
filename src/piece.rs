@@ -150,7 +150,7 @@ fn spawn_piece(
                     let prev: &PieceHexData = hexes.values().last().unwrap();
                     let mut connected = false;
 
-                    if rng.gen_bool(0.5) {
+                    if rng.gen_bool(0.65) {
                         blueprint.take();
                     } else {
                         connected = rng.gen_bool(0.5);
