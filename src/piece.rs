@@ -16,7 +16,7 @@ use bevy::{
     prelude::*,
     sprite::MaterialMesh2dBundle,
     ui::debug,
-    utils::{info, HashMap},
+    utils::{info, HashMap, HashSet},
     window::PrimaryWindow,
 };
 use bevy_mod_picking::prelude::*;
@@ -81,8 +81,15 @@ impl Default for HexBlueprints {
 
 #[derive(Component)]
 struct Piece {
-    hexes: HashMap<Hex, HexData>,
+    hexes: HashMap<Hex, PieceHexData>,
     target_hex: Option<Hex>,
+}
+
+#[derive(Component)]
+pub struct PieceHexData {
+    entity: Entity,
+    side_index: u8,
+    pub data: HexData,
 }
 
 #[derive(Component, Deref, DerefMut)]
@@ -123,7 +130,7 @@ fn spawn_piece(
 
         for y in [-250., 0., 250.] {
             let size = blueprints.size_weighted_index.sample(&mut rng) + 1;
-            let mut placed = HashMap::with_capacity(3);
+            let mut hexes = HashMap::with_capacity(3);
 
             for i in 0..size {
                 let mut blueprint =
@@ -140,7 +147,7 @@ fn spawn_piece(
                 let mut side = Some(rotation_side);
 
                 if i > 0 {
-                    let prev: &HexData = placed.values().last().unwrap();
+                    let prev: &PieceHexData = hexes.values().last().unwrap();
                     let mut connected = false;
 
                     if rng.gen_bool(0.5) {
@@ -150,7 +157,7 @@ fn spawn_piece(
                     }
 
                     if i == 1 {
-                        side = prev.connected_sides.map_or(None, |connected_sides| {
+                        side = prev.data.connections().map_or(None, |connected_sides| {
                             connected_sides
                                 .iter()
                                 .enumerate()
@@ -165,7 +172,7 @@ fn spawn_piece(
                         });
                     } else if i == 2 {
                         // only valid positions are 'above' or 'below' the 2 already placed hexes
-                        let first = placed.values().next().unwrap();
+                        let first = hexes.values().next().unwrap();
                         let current_first =
                             get_opposite_side_index(get_side_index(side.unwrap() as i8 + 1));
                         let current_second = get_side_index(current_first as i8 + 1);
@@ -184,10 +191,12 @@ fn spawn_piece(
                         let second_side = get_opposite_side_index(current_second);
 
                         let first_connected = first
-                            .connected_sides
+                            .data
+                            .connections()
                             .map_or(false, |sides| sides[first_side]);
                         let second_connected = prev
-                            .connected_sides
+                            .data
+                            .connections()
                             .map_or(false, |sides| sides[second_side]);
 
                         // todo: do also below
@@ -234,17 +243,28 @@ fn spawn_piece(
                     ))
                     .id();
 
-                placed.insert(
+                // todo: ?
+                // HexData {
+                //     entity,
+                //     placed: blueprint.map_or(PlacedHex::Empty, |bp| {
+                //         PlacedHex::Route(bp.connected_sides.clone())
+                //     }),
+                //     side_index: side.unwrap_or(0) as u8,
+                // },
+
+                hexes.insert(
                     hex,
-                    HexData {
+                    PieceHexData {
                         entity,
-                        connected_sides: blueprint.map(|bp| bp.connected_sides.clone()),
                         side_index: side.unwrap_or(0) as u8,
+                        data: blueprint.map_or(HexData::Empty, |bp| HexData::Route {
+                            connections: bp.connected_sides.clone(),
+                        }),
                     },
                 );
             }
 
-            let children: Vec<_> = placed.values().map(|hex_data| hex_data.entity).collect();
+            let children: Vec<_> = hexes.values().map(|d| d.entity).collect();
 
             // todo: raise z to prevent z-fighting
             let pos = Vec3::new(y, 400., 1.);
@@ -253,7 +273,7 @@ fn spawn_piece(
             ))
             .insert((
                 Piece {
-                    hexes: placed,
+                    hexes,
                     target_hex: None,
                 },
                 InitialPosition(pos),
@@ -446,39 +466,42 @@ fn rotate_piece(
                 piece.hexes = piece
                     .hexes
                     .drain()
-                    .map(|(hex, mut data)| {
+                    .map(|(hex, mut piece_hex_data)| {
                         let rotated_hex = if clockwise {
                             hex.cw_around(center_hex)
                         } else {
                             hex.ccw_around(center_hex)
                         };
 
-                        data.side_index = get_side_index(
-                            data.side_index as i8 + (if clockwise { -1 } else { 1 }),
+                        piece_hex_data.side_index = get_side_index(
+                            piece_hex_data.side_index as i8 + (if clockwise { -1 } else { 1 }),
                         ) as u8;
 
-                        if let Some(sides) = &mut data.connected_sides {
+                        if let HexData::Route { connections, .. } = &mut piece_hex_data.data {
                             if clockwise {
-                                sides.rotate_right(1);
+                                connections.rotate_right(1);
                             } else {
-                                sides.rotate_left(1);
+                                connections.rotate_left(1);
                             }
                         }
 
-                        cmd.entity(data.entity).insert(Animator::new(Tracks::new([
-                            get_translation_tween(
-                                None,
-                                map_layout.hex_to_world_pos(rotated_hex).extend(0.),
-                                350,
-                                EaseFunction::BackInOut,
-                            ),
-                            get_relative_rotation_tween(
-                                Quat::from_rotation_z((data.side_index as f32 * 60.).to_radians()),
-                                300,
-                            ),
-                        ])));
+                        cmd.entity(piece_hex_data.entity)
+                            .insert(Animator::new(Tracks::new([
+                                get_translation_tween(
+                                    None,
+                                    map_layout.hex_to_world_pos(rotated_hex).extend(0.),
+                                    350,
+                                    EaseFunction::BackInOut,
+                                ),
+                                get_relative_rotation_tween(
+                                    Quat::from_rotation_z(
+                                        (piece_hex_data.side_index as f32 * 60.).to_radians(),
+                                    ),
+                                    300,
+                                ),
+                            ])));
 
-                        (rotated_hex, data)
+                        (rotated_hex, piece_hex_data)
                     })
                     .collect();
 

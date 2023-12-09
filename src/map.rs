@@ -1,16 +1,19 @@
 use crate::{
     animation::{delay_tween, get_scale_anim, get_scale_tween},
+    loading::TextureAssets,
+    piece::PieceHexData,
     GameState,
 };
 use bevy::{
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
     sprite::MaterialMesh2dBundle,
-    utils::HashMap,
+    utils::{HashMap, HashSet},
     window::PrimaryWindow,
 };
 use bevy_tweening::{Animator, EaseFunction};
 use hexx::{shapes, *};
+use rand::{thread_rng, Rng};
 use strum::EnumIter;
 
 pub const MAP_RADIUS: u32 = 3;
@@ -36,18 +39,22 @@ pub struct WorldLayout(HexLayout);
 pub struct WorldMap(HashMap<Hex, MapHex>);
 
 impl WorldMap {
-    pub fn place_piece(&mut self, hex: Hex, piece_hexes: &HashMap<Hex, HexData>) -> Vec<Vec<Hex>> {
+    pub fn place_piece(
+        &mut self,
+        hex: Hex,
+        piece_hexes: &HashMap<Hex, PieceHexData>,
+    ) -> Vec<Vec<Hex>> {
         let cleared_lines = Vec::new();
 
         let placed_hexes: Vec<_> = piece_hexes
             .iter()
-            .map(|(key, val)| (hex + *key, val.clone()))
+            .map(|(key, val)| (hex + *key, val.data.clone()))
             .collect();
 
         // place hexes
-        for (hex, placed_hex) in placed_hexes.iter() {
+        for (hex, hex_data) in placed_hexes.iter() {
             self.entry(*hex).and_modify(|map_hex| {
-                map_hex.placed = Some(placed_hex.clone());
+                map_hex.placed = Some(hex_data.clone());
             });
         }
 
@@ -120,18 +127,31 @@ impl MapHex {
     }
 }
 
-#[derive(Component, Clone, Debug)]
-pub struct HexData {
-    pub connected_sides: Option<[bool; 6]>,
-    pub side_index: u8,
-    pub entity: Entity,
+#[derive(Clone, Debug)]
+pub enum HexData {
+    House, // todo: color/group?
+    Route { connections: [bool; 6] },
+    Empty, // decorations, lakes etc.
+}
+
+impl HexData {
+    pub fn connections(&self) -> Option<&[bool; 6]> {
+        if let HexData::Route { connections, .. } = &self {
+            Some(connections)
+        } else {
+            None
+        }
+    }
 }
 
 fn setup_grid(
-    mut commands: Commands,
+    mut cmd: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    sprites: Res<TextureAssets>,
 ) {
+    let mut rng = thread_rng();
+
     let layout = HexLayout {
         hex_size: Vec2::splat(HEX_SIZE),
         orientation: HexOrientation::Pointy,
@@ -146,11 +166,11 @@ fn setup_grid(
     let mesh = hexagonal_plane(&layout);
     let mesh_handle = meshes.add(mesh);
 
-    let hexes = shapes::hexagon(Hex::ZERO, MAP_RADIUS)
+    let mut hexes: HashMap<Hex, MapHex> = shapes::hexagon(Hex::ZERO, MAP_RADIUS)
         .map(|hex| {
             let pos = layout.hex_to_world_pos(hex);
             let hex_len = hex.ulength() as u64;
-            let entity = commands
+            let entity = cmd
                 .spawn((
                     ColorMesh2dBundle {
                         transform: Transform::from_xyz(pos.x, pos.y, 0.0),
@@ -199,8 +219,40 @@ fn setup_grid(
         })
         .collect();
 
-    commands.insert_resource(WorldLayout(layout));
-    commands.insert_resource(WorldMap(hexes));
+    // houses
+    let count = 3;
+    let mut house_hexes = HashSet::with_capacity(count);
+    'houses: loop {
+        for i in (0..=MAP_RADIUS).rev() {
+            for hex in Hex::ZERO.ring(i) {
+                if house_hexes.contains(&hex) {
+                    continue;
+                }
+
+                if rng.gen_bool(0.2) {
+                    hexes.get_mut(&hex).unwrap().placed = Some(HexData::House);
+                    house_hexes.insert(hex);
+
+                    cmd.spawn(SpriteSheetBundle {
+                        transform: Transform {
+                            translation: layout.hex_to_world_pos(hex).extend(1.),
+                            ..default()
+                        },
+                        sprite: TextureAtlasSprite::new(11),
+                        texture_atlas: sprites.tiles.clone(),
+                        ..default()
+                    });
+
+                    if house_hexes.len() >= count {
+                        break 'houses;
+                    }
+                }
+            }
+        }
+    }
+
+    cmd.insert_resource(WorldLayout(layout));
+    cmd.insert_resource(WorldMap(hexes));
 }
 
 /// Compute a bevy mesh from the layout

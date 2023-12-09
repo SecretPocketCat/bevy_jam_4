@@ -1,5 +1,10 @@
 # Todo
 
+## Fix
+
+- [ ] initial piece rotation breaks some hexes?
+- [ ] focus over sprites sometimes lost?
+
 ## Basic loop
 
 - [x] spawn test piece
@@ -27,6 +32,11 @@
 - [x] try triple hex pieces (triangles - 1 to 3 route hexes?)
 - [x] handle hex & connection rotation
 - [ ] randomly pick hex decorations for the empty hex
+
+## Houses
+
+- [ ] place houses
+- [ ] pieces can't be placed on houses
 
 ## Extra
 
