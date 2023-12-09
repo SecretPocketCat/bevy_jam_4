@@ -3,6 +3,7 @@
 
 mod animation;
 mod cooldown;
+mod debug;
 mod input;
 mod loading;
 mod map;
@@ -10,6 +11,7 @@ mod math;
 mod menu;
 mod mouse;
 mod piece;
+mod reset;
 
 use crate::loading::LoadingPlugin;
 use crate::menu::MenuPlugin;
@@ -20,6 +22,7 @@ use cooldown::CooldownPlugin;
 use input::InputPlugin;
 use map::MapPlugin;
 use mouse::CursorPlugin;
+use reset::ResetPlugin;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -48,6 +51,11 @@ impl Plugin for GamePlugin {
             CursorPlugin,
             AnimationPlugin,
             CooldownPlugin,
+            ResetPlugin,
         ));
+
+        if cfg!(debug_assertions) {
+            app.add_plugins(debug::DebugPlugin);
+        }
     }
 }

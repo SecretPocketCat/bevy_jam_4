@@ -10,6 +10,7 @@ use crate::{
     map::{HexData, WorldLayout, WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
     math::{asymptotic_smoothing, asymptotic_smoothing_with_delta_time},
     mouse::CursorPosition,
+    reset::Resettable,
     GameState,
 };
 use bevy::{
@@ -235,6 +236,7 @@ fn spawn_piece(
                     get_scale_tween(None, Vec3::ONE, 300, EaseFunction::BackOut),
                     150,
                 )),
+                Resettable,
             ))
             .push_children(&children);
         }

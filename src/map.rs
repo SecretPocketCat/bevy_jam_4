@@ -2,6 +2,7 @@ use crate::{
     animation::{delay_tween, get_scale_anim, get_scale_tween},
     loading::TextureAssets,
     piece::PieceHexData,
+    reset::Resettable,
     GameState,
 };
 use bevy::{
@@ -144,7 +145,7 @@ impl HexData {
     }
 }
 
-fn setup_grid(
+pub fn setup_grid(
     mut cmd: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
@@ -178,6 +179,7 @@ fn setup_grid(
                         material: border_material.clone(),
                         ..default()
                     },
+                    // todo: fix this tween?
                     Animator::new(delay_tween(
                         get_scale_tween(
                             None,
@@ -191,6 +193,7 @@ fn setup_grid(
                         ),
                         hex_len * 80,
                     )),
+                    Resettable,
                 ))
                 .with_children(|b| {
                     b.spawn(MaterialMesh2dBundle {
@@ -248,15 +251,18 @@ fn setup_grid(
                 if rng.gen_bool(0.25) {
                     // todo: tween
                     let entity = cmd
-                        .spawn(SpriteSheetBundle {
-                            transform: Transform {
-                                translation: layout.hex_to_world_pos(hex).extend(1.),
+                        .spawn((
+                            SpriteSheetBundle {
+                                transform: Transform {
+                                    translation: layout.hex_to_world_pos(hex).extend(1.),
+                                    ..default()
+                                },
+                                sprite: TextureAtlasSprite::new(11),
+                                texture_atlas: sprites.tiles.clone(),
                                 ..default()
                             },
-                            sprite: TextureAtlasSprite::new(11),
-                            texture_atlas: sprites.tiles.clone(),
-                            ..default()
-                        })
+                            Resettable,
+                        ))
                         .id();
 
                     hexes
