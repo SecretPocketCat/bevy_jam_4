@@ -1,10 +1,5 @@
 # Todo
 
-## Fix
-
-- [x] initial piece rotation breaks some hexes?
-- [ ] focus over sprites sometimes lost?
-
 ## Houses
 
 - [x] place houses
@@ -39,6 +34,11 @@
 - [ ] delay initial piece spawns (after board)
 - [ ] refresh snapping on rotation
 - [ ] fix pieces moving on rotation (tween them back)
+
+## Fix
+
+- [x] initial piece rotation breaks some hexes?
+- [x] focus over sprites sometimes lost
 
 ## Story
 

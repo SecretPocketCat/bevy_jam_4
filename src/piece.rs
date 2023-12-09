@@ -15,7 +15,7 @@ use crate::{
 };
 use bevy::{
     prelude::*,
-    sprite::MaterialMesh2dBundle,
+    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
     ui::debug,
     utils::{HashMap, HashSet},
     window::PrimaryWindow,
@@ -109,7 +109,7 @@ impl Plugin for PiecePlugin {
                     drag_piece,
                     drag_piece_end,
                     rotate_piece,
-                    over_piece,
+                    over_piece.after(out_piece),
                     out_piece,
                 )
                     .distributive_run_if(
@@ -125,6 +125,7 @@ fn spawn_piece(
     blueprints: Res<HexBlueprints>,
     piece_q: Query<&Piece>,
     sprites: Res<TextureAssets>,
+    mut meshes: ResMut<Assets<Mesh>>,
 ) {
     if piece_q.iter().len() < 1 {
         let mut rng = thread_rng();
@@ -183,11 +184,13 @@ fn spawn_piece(
                     }
                 }
 
+                let pos = map_layout.hex_to_world_pos(hex).extend(0.);
+
                 let entity = cmd
                     .spawn((
                         SpriteSheetBundle {
                             transform: Transform {
-                                translation: map_layout.hex_to_world_pos(hex).extend(0.),
+                                translation: pos,
                                 rotation: Quat::from_rotation_z(
                                     (rotation_side as f32 * 60.).to_radians(),
                                 ),
@@ -200,6 +203,9 @@ fn spawn_piece(
                             texture_atlas: sprites.tiles.clone(),
                             ..default()
                         },
+                        Mesh2dHandle::from(
+                            meshes.add(shape::RegularPolygon::new(HEX_SIZE, 6).into()),
+                        ),
                         PickableBundle::default(),
                     ))
                     // .with_children(|b| {
