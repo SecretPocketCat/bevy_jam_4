@@ -368,15 +368,18 @@ fn drag_piece_end(
     }
 
     if let Some(placed_e) = placed_piece {
-        for (e, ..) in piece_q.iter() {
-            if e == placed_e {
-                continue;
-            }
+        // only remove last piece
+        if piece_q.iter().len() <= 2 {
+            for (e, ..) in piece_q.iter() {
+                if e == placed_e {
+                    continue;
+                }
 
-            cmd.entity(e).insert((
-                get_scale_anim(None, Vec3::ZERO, 300, EaseFunction::BackIn),
-                DespawnOnTweenCompleted,
-            ));
+                cmd.entity(e).insert((
+                    get_scale_anim(None, Vec3::ZERO, 300, EaseFunction::BackIn),
+                    DespawnOnTweenCompleted,
+                ));
+            }
         }
     }
 }

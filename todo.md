@@ -16,7 +16,7 @@
 - [x] rotate around the hovered hex
 - [x] spawn 3 options
 - [x] remove ingredient from hex variant
-- [ ] have to use 2 out of 3 pieces
+- [x] have to use 2 out of 3 pieces
 
 ## Revamp to routes
 
