@@ -71,7 +71,9 @@ impl Default for HexBlueprints {
         Self {
             hexes: blueprints,
             weighted_index,
-            size_weighted_index: WeightedIndex::new([2, 3 /* , 1*/]).unwrap(),
+            // todo: tweak when triples work properly
+            size_weighted_index: WeightedIndex::new([1, 2, 3]).unwrap(),
+            // size_weighted_index: WeightedIndex::new([2, 3, 1]).unwrap(),
         }
     }
 }
@@ -118,9 +120,10 @@ fn spawn_piece(
     if piece_q.iter().len() < 1 {
         let mut rng = thread_rng();
 
-        for y in [200., 0., -200.] {
+        for y in [-200., 0., 200.] {
             let size = blueprints.size_weighted_index.sample(&mut rng) + 1;
             let mut placed = HashMap::with_capacity(3);
+            let mut first_side = None;
 
             for i in 0..size {
                 let mut blueprint =
@@ -138,16 +141,15 @@ fn spawn_piece(
 
                 if i > 0 {
                     let prev: &HexData = placed.values().last().unwrap();
+                    let mut connected = false;
+
+                    if rng.gen_bool(0.5) {
+                        blueprint.take();
+                    } else {
+                        connected = rng.gen_bool(0.5);
+                    }
 
                     if i == 1 {
-                        let mut connected = false;
-
-                        if rng.gen_bool(0.5) {
-                            blueprint.take();
-                        } else {
-                            connected = rng.gen_bool(0.5);
-                        }
-
                         let side = prev.connected_sides.map_or(None, |connected_sides| {
                             connected_sides
                                 .iter()
@@ -155,18 +157,67 @@ fn spawn_piece(
                                 .find(|(side, conn)| {
                                     **conn == connected
                                         && blueprint.map_or(true, |bp| {
-                                            bp.connected_sides[(*side + 3) % 6] == connected
+                                            bp.connected_sides[get_opposite_side_index(*side)]
+                                                == connected
                                         })
                                 })
                                 .map(|(side, _)| side)
                         });
 
                         match side {
-                            Some(side) => hex = Hex::new(1, -1).rotate_cw(side as u32),
-                            None => continue,
+                            Some(side) => {
+                                hex = Hex::new(1, -1).rotate_cw(side as u32);
+                                first_side = Some(side);
+                            }
+                            None => break,
                         }
+                    } else if i == 2 {
+                        // only valid positions are 'above' or 'below' the 2 already placed hexes
+                        let first = placed.values().next().unwrap();
+
+                        let current_first =
+                            get_opposite_side_index(get_side_index(first_side.unwrap() as i8 + 1));
+                        let current_second = get_side_index(current_first as i8 + 1);
+
+                        if first_side.unwrap() >= 3 {
+                            // todo:
+                            break;
+                        }
+
+                        let current_first_connected =
+                            blueprint.map_or(false, |bp| bp.connected_sides[current_first]);
+                        let current_second_connected =
+                            blueprint.map_or(false, |bp| bp.connected_sides[current_second]);
+
+                        let first_side = get_opposite_side_index(current_first);
+                        let second_side = get_opposite_side_index(current_second);
+
+                        let first_connected = first
+                            .connected_sides
+                            .map_or(false, |sides| sides[first_side]);
+                        let second_connected = prev
+                            .connected_sides
+                            .map_or(false, |sides| sides[second_side]);
+
+                        // todo: do also below
+                        let side = if first_connected == current_first_connected
+                            && second_connected == current_second_connected
+                        {
+                            Some(get_opposite_side_index(current_first))
+                        } else {
+                            None
+                        };
+
+                        match side {
+                            Some(side) => {
+                                hex = Hex::new(1, -1).rotate_cw(side as u32);
+                            }
+                            None => break,
+                        }
+                    } else {
+                        panic!("Size {i} is invalid");
                     }
-                };
+                }
 
                 let entity = cmd
                     .spawn((
@@ -184,16 +235,7 @@ fn spawn_piece(
                             )),
                             texture_atlas: sprites.tiles.clone(),
                             ..default()
-                        }, // MaterialMesh2dBundle {
-                        //     mesh: meshes
-                        //         .add(shape::RegularPolygon::new(HEX_SIZE_INNER, 6).into())
-                        //         .into(),
-                        //     material: materials.add(ColorMaterial::from(*color)),
-                        //     transform: Transform::from_translation(
-                        //         map_layout.hex_to_world_pos(*hex).extend(0.),
-                        //     ),
-                        //     ..default()
-                        // }
+                        },
                         PickableBundle::default(),
                     ))
                     .id();
@@ -210,7 +252,7 @@ fn spawn_piece(
             let children: Vec<_> = placed.values().map(|hex_data| hex_data.entity).collect();
 
             // todo: raise z to prevent z-fighting
-            let pos = Vec3::new(450., y, 1.);
+            let pos = Vec3::new(y, 400., 1.);
             cmd.spawn(SpatialBundle::from_transform(
                 Transform::from_translation(pos).with_scale(Vec2::ZERO.extend(1.)),
             ))
@@ -228,6 +270,14 @@ fn spawn_piece(
             .push_children(&children);
         }
     }
+}
+
+fn get_side_index(index: i8) -> usize {
+    index.wrapping_rem_euclid(6) as usize
+}
+
+fn get_opposite_side_index(side: usize) -> usize {
+    get_side_index((side + 3) as i8)
 }
 
 fn drag_piece(

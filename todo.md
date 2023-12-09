@@ -24,7 +24,7 @@
 - [x] spawn either 1 or 2 connected route hexes or 1 route + 1 empty
 - [x] randomly rotate each hex
 - [x] properly connect 2 route hexes (route on route action)
-- [ ] try triple hex pieces (triangles - 1 to 3 route hexes?)
+- [x] try triple hex pieces (triangles - 1 to 3 route hexes?)
 - [ ] randomly pick hex decorations for the empty hex
 
 ## Scoring
