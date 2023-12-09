@@ -5,6 +5,7 @@ use super::tween_macros::*;
 
 relative_lens!(Transform, Vec3, TransformRelativeScaleLens, scale);
 relative_lens!(Transform, Vec3, TransformRelativePositionLens, translation);
+relative_lens!(Transform, Quat, TransformRelativeRotationLens, rotation);
 
 #[derive(Default)]
 pub struct TransformRelativeByPositionLens {

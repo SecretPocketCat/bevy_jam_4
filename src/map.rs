@@ -123,6 +123,7 @@ impl MapHex {
 #[derive(Component, Clone, Debug)]
 pub struct HexData {
     pub connected_sides: Option<[bool; 6]>,
+    pub side_index: u8,
     pub entity: Entity,
 }
 

@@ -25,7 +25,7 @@
 - [x] randomly rotate each hex
 - [x] properly connect 2 route hexes (route on route action)
 - [x] try triple hex pieces (triangles - 1 to 3 route hexes?)
-- [ ] handle hex & connection rotation
+- [x] handle hex & connection rotation
 - [ ] randomly pick hex decorations for the empty hex
 
 ## Extra

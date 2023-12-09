@@ -25,6 +25,14 @@ relative_tween_fns!(
 
 relative_tween_fns!(scale, Transform, TransformRelativeScaleLens, Vec3, Vec3);
 
+relative_tween_fns!(
+    rotation,
+    Transform,
+    TransformRelativeRotationLens,
+    Quat,
+    Quat
+);
+
 relative_tween_fns!(text_color, Text, TextRelativeColorLens, Vec<Color>, Color);
 
 relative_tween_fns!(

@@ -1,7 +1,8 @@
 use crate::{
     animation::{
-        delay_tween, get_relative_scale_anim, get_relative_translation_anim, get_scale_anim,
-        get_scale_tween, get_translation_anim, DespawnOnTweenCompleted,
+        delay_tween, get_relative_rotation_tween, get_relative_scale_anim,
+        get_relative_translation_anim, get_scale_anim, get_scale_tween, get_translation_anim,
+        get_translation_tween, DespawnOnTweenCompleted,
     },
     cooldown::{Cooldown, Rotating},
     input::GameAction,
@@ -19,11 +20,11 @@ use bevy::{
     window::PrimaryWindow,
 };
 use bevy_mod_picking::prelude::*;
-use bevy_tweening::{Animator, EaseFunction};
+use bevy_tweening::{Animator, EaseFunction, Tracks};
 use hexx::Hex;
 use leafwing_input_manager::prelude::*;
 use rand::{distributions::WeightedIndex, prelude::*};
-use std::{f32::consts::E, marker::PhantomData};
+use std::{f32::consts::E, marker::PhantomData, ops::Add};
 use strum::IntoEnumIterator;
 
 #[derive(Debug, Clone)]
@@ -120,10 +121,9 @@ fn spawn_piece(
     if piece_q.iter().len() < 1 {
         let mut rng = thread_rng();
 
-        for y in [-200., 0., 200.] {
+        for y in [-250., 0., 250.] {
             let size = blueprints.size_weighted_index.sample(&mut rng) + 1;
             let mut placed = HashMap::with_capacity(3);
-            let mut first_side = None;
 
             for i in 0..size {
                 let mut blueprint =
@@ -137,7 +137,7 @@ fn spawn_piece(
                 }
 
                 let mut blueprint = Some(&blueprint);
-                let mut hex = Hex::ZERO;
+                let mut side = Some(rotation_side);
 
                 if i > 0 {
                     let prev: &HexData = placed.values().last().unwrap();
@@ -150,7 +150,7 @@ fn spawn_piece(
                     }
 
                     if i == 1 {
-                        let side = prev.connected_sides.map_or(None, |connected_sides| {
+                        side = prev.connected_sides.map_or(None, |connected_sides| {
                             connected_sides
                                 .iter()
                                 .enumerate()
@@ -163,23 +163,14 @@ fn spawn_piece(
                                 })
                                 .map(|(side, _)| side)
                         });
-
-                        match side {
-                            Some(side) => {
-                                hex = Hex::new(1, -1).rotate_cw(side as u32);
-                                first_side = Some(side);
-                            }
-                            None => break,
-                        }
                     } else if i == 2 {
                         // only valid positions are 'above' or 'below' the 2 already placed hexes
                         let first = placed.values().next().unwrap();
-
                         let current_first =
-                            get_opposite_side_index(get_side_index(first_side.unwrap() as i8 + 1));
+                            get_opposite_side_index(get_side_index(side.unwrap() as i8 + 1));
                         let current_second = get_side_index(current_first as i8 + 1);
 
-                        if first_side.unwrap() >= 3 {
+                        if side.unwrap() >= 3 {
                             // todo:
                             break;
                         }
@@ -200,24 +191,27 @@ fn spawn_piece(
                             .map_or(false, |sides| sides[second_side]);
 
                         // todo: do also below
-                        let side = if first_connected == current_first_connected
+                        side = if first_connected == current_first_connected
                             && second_connected == current_second_connected
                         {
                             Some(get_opposite_side_index(current_first))
                         } else {
                             None
                         };
-
-                        match side {
-                            Some(side) => {
-                                hex = Hex::new(1, -1).rotate_cw(side as u32);
-                            }
-                            None => break,
-                        }
                     } else {
                         panic!("Size {i} is invalid");
                     }
                 }
+
+                if side.is_none() {
+                    break;
+                }
+
+                let hex = if i == 0 {
+                    Hex::ZERO
+                } else {
+                    side.map_or(Hex::ZERO, |side| Hex::new(1, -1).rotate_cw(side as u32))
+                };
 
                 let entity = cmd
                     .spawn((
@@ -245,6 +239,7 @@ fn spawn_piece(
                     HexData {
                         entity,
                         connected_sides: blueprint.map(|bp| bp.connected_sides.clone()),
+                        side_index: side.unwrap_or(0) as u8,
                     },
                 );
             }
@@ -451,19 +446,37 @@ fn rotate_piece(
                 piece.hexes = piece
                     .hexes
                     .drain()
-                    .map(|(hex, data)| {
+                    .map(|(hex, mut data)| {
                         let rotated_hex = if clockwise {
                             hex.cw_around(center_hex)
                         } else {
                             hex.ccw_around(center_hex)
                         };
 
-                        cmd.entity(data.entity).insert(get_translation_anim(
-                            None,
-                            map_layout.hex_to_world_pos(rotated_hex).extend(0.),
-                            350,
-                            EaseFunction::BackInOut,
-                        ));
+                        data.side_index = get_side_index(
+                            data.side_index as i8 + (if clockwise { -1 } else { 1 }),
+                        ) as u8;
+
+                        if let Some(sides) = &mut data.connected_sides {
+                            if clockwise {
+                                sides.rotate_right(1);
+                            } else {
+                                sides.rotate_left(1);
+                            }
+                        }
+
+                        cmd.entity(data.entity).insert(Animator::new(Tracks::new([
+                            get_translation_tween(
+                                None,
+                                map_layout.hex_to_world_pos(rotated_hex).extend(0.),
+                                350,
+                                EaseFunction::BackInOut,
+                            ),
+                            get_relative_rotation_tween(
+                                Quat::from_rotation_z((data.side_index as f32 * 60.).to_radians()),
+                                300,
+                            ),
+                        ])));
 
                         (rotated_hex, data)
                     })
