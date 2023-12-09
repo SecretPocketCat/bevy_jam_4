@@ -73,7 +73,7 @@ impl Default for HexBlueprints {
             hexes: blueprints,
             weighted_index,
             // todo: tweak when triples work properly
-            size_weighted_index: WeightedIndex::new([1, 2, 3]).unwrap(),
+            size_weighted_index: WeightedIndex::new([1, 2 /*3*/]).unwrap(),
             // size_weighted_index: WeightedIndex::new([2, 3, 1]).unwrap(),
         }
     }
@@ -170,43 +170,6 @@ fn spawn_piece(
                                 })
                                 .map(|(side, _)| side)
                         });
-                    } else if i == 2 {
-                        // only valid positions are 'above' or 'below' the 2 already placed hexes
-                        let first = hexes.values().next().unwrap();
-                        let current_first =
-                            get_opposite_side_index(get_side_index(side.unwrap() as i8 + 1));
-                        let current_second = get_side_index(current_first as i8 + 1);
-
-                        if side.unwrap() >= 3 {
-                            // todo:
-                            break;
-                        }
-
-                        let current_first_connected =
-                            blueprint.map_or(false, |bp| bp.connected_sides[current_first]);
-                        let current_second_connected =
-                            blueprint.map_or(false, |bp| bp.connected_sides[current_second]);
-
-                        let first_side = get_opposite_side_index(current_first);
-                        let second_side = get_opposite_side_index(current_second);
-
-                        let first_connected = first
-                            .data
-                            .connections()
-                            .map_or(false, |sides| sides[first_side]);
-                        let second_connected = prev
-                            .data
-                            .connections()
-                            .map_or(false, |sides| sides[second_side]);
-
-                        // todo: do also below
-                        side = if first_connected == current_first_connected
-                            && second_connected == current_second_connected
-                        {
-                            Some(get_opposite_side_index(current_first))
-                        } else {
-                            None
-                        };
                     } else {
                         panic!("Size {i} is invalid");
                     }
@@ -242,15 +205,6 @@ fn spawn_piece(
                         PickableBundle::default(),
                     ))
                     .id();
-
-                // todo: ?
-                // HexData {
-                //     entity,
-                //     placed: blueprint.map_or(PlacedHex::Empty, |bp| {
-                //         PlacedHex::Route(bp.connected_sides.clone())
-                //     }),
-                //     side_index: side.unwrap_or(0) as u8,
-                // },
 
                 hexes.insert(
                     hex,
