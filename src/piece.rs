@@ -7,7 +7,7 @@ use crate::{
     cooldown::{Cooldown, Rotating},
     input::GameAction,
     loading::TextureAssets,
-    map::{HexData, WorldLayout, WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
+    map::{WorldLayout, WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
     math::{asymptotic_smoothing, asymptotic_smoothing_with_delta_time},
     mouse::CursorPosition,
     reset::Resettable,
@@ -90,7 +90,7 @@ struct Piece {
 pub struct PieceHexData {
     entity: Entity,
     side_index: u8,
-    pub data: HexData,
+    pub connections: Option<[bool; 6]>,
 }
 
 #[derive(Component, Deref, DerefMut)]
@@ -158,7 +158,7 @@ fn spawn_piece(
                     }
 
                     if i == 1 {
-                        let side = prev.data.connections().map_or(None, |connected_sides| {
+                        let side = prev.connections.map_or(None, |connected_sides| {
                             connected_sides
                                 .iter()
                                 .enumerate()
@@ -229,9 +229,7 @@ fn spawn_piece(
                     PieceHexData {
                         entity,
                         side_index: rotation_side as u8,
-                        data: blueprint.map_or(HexData::Empty, |bp| HexData::Route {
-                            connections: bp.connected_sides.clone(),
-                        }),
+                        connections: blueprint.map_or(None, |bp| Some(bp.connected_sides.clone())),
                     },
                 );
             }
@@ -290,7 +288,8 @@ fn drag_piece(
                 }
 
                 if piece.hexes.keys().all(|h| {
-                    map.get(&(target_hex + *h))
+                    map.hexes
+                        .get(&(target_hex + *h))
                         .map_or(false, |map_hex| map_hex.placed.is_none())
                 }) {
                     piece.target_hex = Some(target_hex);
@@ -450,7 +449,7 @@ fn rotate_piece(
                             piece_hex_data.side_index as i8 + (if clockwise { -1 } else { 1 }),
                         ) as u8;
 
-                        if let HexData::Route { connections, .. } = &mut piece_hex_data.data {
+                        if let Some(connections) = &mut piece_hex_data.connections {
                             if clockwise {
                                 connections.rotate_right(1);
                             } else {

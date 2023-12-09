@@ -36,87 +36,48 @@ impl Plugin for MapPlugin {
 #[derive(Debug, Resource, Deref, DerefMut)]
 pub struct WorldLayout(HexLayout);
 
-#[derive(Debug, Resource, Deref, DerefMut)]
-pub struct WorldMap(HashMap<Hex, MapHex>);
+#[derive(Debug, Resource)]
+pub struct WorldMap {
+    pub hexes: HashMap<Hex, MapHex>,
+    houses: HashMap<Hex, Option<Vec<Hex>>>,
+}
 
 impl WorldMap {
-    pub fn place_piece(
-        &mut self,
-        hex: Hex,
-        piece_hexes: &HashMap<Hex, PieceHexData>,
-    ) -> Vec<Vec<Hex>> {
-        let cleared_lines = Vec::new();
-
+    pub fn place_piece(&mut self, hex: Hex, piece_hexes: &HashMap<Hex, PieceHexData>) {
         let placed_hexes: Vec<_> = piece_hexes
             .iter()
-            .map(|(key, val)| (hex + *key, val.data.clone()))
+            .map(|(key, val)| (hex + *key, val.connections.clone()))
             .collect();
 
         // place hexes
         for (hex, hex_data) in placed_hexes.iter() {
-            self.entry(*hex).and_modify(|map_hex| {
-                map_hex.placed = Some(hex_data.clone());
+            let connections = hex_data.map(|connected_sides| {
+                connected_sides
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, connected)| **connected)
+                    .map(|(side, _)| Hex::new(1, -1).rotate_cw(side as u32))
+                    .collect()
+            });
+
+            self.hexes.entry(*hex).and_modify(|map_hex| {
+                map_hex.placed = Some(PlacedHex(connections));
             });
         }
-
-        // for (placed_hex, placed_hex_data) in placed_hexes.iter() {
-        //     // line can be cleared twice (ingredient & color)
-        //     let clear_count = 0;
-
-        //     for line in self.lines(*placed_hex) {
-        //         let color_match_count: usize = line
-        //             .iter()
-        //             .map(|h| {
-        //                 if let Some(placed_hex) = self[h].placed.as_ref() {
-        //                     (placed_hex.color == placed_hex_data.color) as usize
-        //                 } else {
-        //                     0
-        //                 }
-        //             })
-        //             .sum();
-
-        //         let cleared_col = color_match_count == line.len();
-
-        //         if cleared_col {
-        //             info!("Cleared color line!");
-        //         }
-        //     }
-
-        //     // check lines for ingredient and/or color matches
-        // }
-
-        cleared_lines
     }
 
-    pub fn lines(&self, hex: Hex) -> [Vec<Hex>; 3] {
-        let radius = MAP_RADIUS as i32;
-        let max_range = -radius as i32..=radius;
-        let hex_z = hex.z();
-
-        let x = max_range
-            .clone()
-            .map(|y| Hex::new(hex.x, y))
-            .filter(|h| self.contains_key(h))
-            .collect();
-        let y = max_range
-            .clone()
-            .map(|x| Hex::new(x, -x - hex_z))
-            .filter(|h| self.contains_key(h))
-            .collect();
-        let z = max_range
-            .clone()
-            .map(|x| Hex::new(x, hex.y))
-            .filter(|h| self.contains_key(h))
-            .collect();
-
-        [x, y, z]
+    pub fn check_routes(&mut self) {
+        // for house_hex in self.houses.iter().filter(|(_, route)| route.is_none()) {}
     }
 }
+
+#[derive(Clone, Debug, Default, Deref, DerefMut)]
+pub struct PlacedHex(Option<HashSet<Hex>>);
 
 #[derive(Clone, Debug)]
 pub struct MapHex {
     pub entity: Entity,
-    pub placed: Option<HexData>,
+    pub placed: Option<PlacedHex>,
 }
 
 impl MapHex {
@@ -124,23 +85,6 @@ impl MapHex {
         Self {
             entity,
             placed: None,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum HexData {
-    House, // todo: color/group?
-    Route { connections: [bool; 6] },
-    Empty, // decorations, lakes etc.
-}
-
-impl HexData {
-    pub fn connections(&self) -> Option<&[bool; 6]> {
-        if let HexData::Route { connections, .. } = &self {
-            Some(connections)
-        } else {
-            None
         }
     }
 }
@@ -267,10 +211,10 @@ pub fn setup_grid(
 
                     hexes
                         .entry(hex)
-                        .and_modify(|d| d.placed = Some(HexData::House))
+                        .and_modify(|d| d.placed = Some(PlacedHex::default()))
                         .or_insert_with(|| MapHex {
                             entity,
-                            placed: Some(HexData::House),
+                            placed: Some(PlacedHex::default()),
                         });
                     house_hexes.insert(hex);
                     wedge_indices.insert(i);
@@ -282,7 +226,10 @@ pub fn setup_grid(
     }
 
     cmd.insert_resource(WorldLayout(layout));
-    cmd.insert_resource(WorldMap(hexes));
+    cmd.insert_resource(WorldMap {
+        hexes,
+        houses: house_hexes.iter().map(|h| (*h, None)).collect(),
+    });
 }
 
 /// Compute a bevy mesh from the layout
