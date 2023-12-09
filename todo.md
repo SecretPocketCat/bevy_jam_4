@@ -1,5 +1,20 @@
 # Todo
 
+## Scoring
+
+- [ ] check if houses are connected
+- [ ] respawn grid on completion
+- [ ] score completed grid
+- [ ] allow resetting the board
+- [ ] remove time when resetting board
+
+## Feedback
+
+- [ ] fix/refresh snapping on rotation
+- [ ] set higher z for dragged piece
+- [ ] highligh selected & dragged piece
+- [ ] remaining pieces UI
+
 ## Houses
 
 - [x] place houses
@@ -9,14 +24,6 @@
 ## Debug
 
 - [x] reset map
-
-## Scoring
-
-- [ ] check if houses are connected
-- [ ] respawn grid on completion
-- [ ] score completed grid
-- [ ] allow resetting the board
-- [ ] remove time when resetting board
 
 ## Revamp to routes
 
@@ -32,13 +39,13 @@
 
 - [ ] stagger piece spawns
 - [ ] delay initial piece spawns (after board)
-- [ ] refresh snapping on rotation
 - [ ] fix pieces moving on rotation (tween them back)
 
 ## Fix
 
 - [x] initial piece rotation breaks some hexes?
 - [x] focus over sprites sometimes lost
+- [ ] fix board animation/tweens
 
 ## Story
 
