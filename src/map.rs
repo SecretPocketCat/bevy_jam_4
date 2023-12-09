@@ -238,7 +238,7 @@ fn setup_grid(
     for dir in direction_group {
         'wedge: loop {
             for (i, hex) in Hex::ZERO
-                .corner_wedge(((MAP_RADIUS - 2)..=MAP_RADIUS).rev(), *dir)
+                .corner_wedge(((MAP_RADIUS - 2)..=(MAP_RADIUS + 1)).rev(), *dir)
                 .enumerate()
             {
                 if house_hexes.contains(&hex) || wedge_indices.contains(&i) {
@@ -246,19 +246,28 @@ fn setup_grid(
                 }
 
                 if rng.gen_bool(0.25) {
-                    hexes.get_mut(&hex).unwrap().placed = Some(HexData::House);
+                    // todo: tween
+                    let entity = cmd
+                        .spawn(SpriteSheetBundle {
+                            transform: Transform {
+                                translation: layout.hex_to_world_pos(hex).extend(1.),
+                                ..default()
+                            },
+                            sprite: TextureAtlasSprite::new(11),
+                            texture_atlas: sprites.tiles.clone(),
+                            ..default()
+                        })
+                        .id();
+
+                    hexes
+                        .entry(hex)
+                        .and_modify(|d| d.placed = Some(HexData::House))
+                        .or_insert_with(|| MapHex {
+                            entity,
+                            placed: Some(HexData::House),
+                        });
                     house_hexes.insert(hex);
                     wedge_indices.insert(i);
-
-                    cmd.spawn(SpriteSheetBundle {
-                        transform: Transform {
-                            translation: layout.hex_to_world_pos(hex).extend(1.),
-                            ..default()
-                        },
-                        sprite: TextureAtlasSprite::new(11),
-                        texture_atlas: sprites.tiles.clone(),
-                        ..default()
-                    });
 
                     break 'wedge;
                 }
