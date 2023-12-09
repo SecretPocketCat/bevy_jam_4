@@ -12,8 +12,8 @@ use bevy::{
     window::PrimaryWindow,
 };
 use bevy_tweening::{Animator, EaseFunction};
-use hexx::{shapes, *};
-use rand::{thread_rng, Rng};
+use hexx::{shapes, Direction, *};
+use rand::{seq::SliceRandom, thread_rng, Rng};
 use strum::EnumIter;
 
 pub const MAP_RADIUS: u32 = 3;
@@ -222,16 +222,33 @@ fn setup_grid(
     // houses
     let count = 3;
     let mut house_hexes = HashSet::with_capacity(count);
-    'houses: loop {
-        for i in (0..=MAP_RADIUS).rev() {
-            for hex in Hex::ZERO.ring(i) {
-                if house_hexes.contains(&hex) {
+    let mut wedge_indices = HashSet::with_capacity(count);
+
+    let direction_group = [
+        [
+            Direction::Top,
+            Direction::BottomLeft,
+            Direction::BottomRight,
+        ],
+        [Direction::Bottom, Direction::TopLeft, Direction::TopRight],
+    ]
+    .choose(&mut rng)
+    .unwrap();
+
+    for dir in direction_group {
+        'wedge: loop {
+            for (i, hex) in Hex::ZERO
+                .corner_wedge(((MAP_RADIUS - 2)..=MAP_RADIUS).rev(), *dir)
+                .enumerate()
+            {
+                if house_hexes.contains(&hex) || wedge_indices.contains(&i) {
                     continue;
                 }
 
-                if rng.gen_bool(0.2) {
+                if rng.gen_bool(0.25) {
                     hexes.get_mut(&hex).unwrap().placed = Some(HexData::House);
                     house_hexes.insert(hex);
+                    wedge_indices.insert(i);
 
                     cmd.spawn(SpriteSheetBundle {
                         transform: Transform {
@@ -243,9 +260,7 @@ fn setup_grid(
                         ..default()
                     });
 
-                    if house_hexes.len() >= count {
-                        break 'houses;
-                    }
+                    break 'wedge;
                 }
             }
         }
