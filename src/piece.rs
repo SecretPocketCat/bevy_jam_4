@@ -153,7 +153,7 @@ fn spawn_piece(
                     if rng.gen_bool(0.65) {
                         blueprint.take();
                     } else {
-                        connected = rng.gen_bool(0.5);
+                        connected = rng.gen_bool(0.75);
                     }
 
                     if i == 1 {
