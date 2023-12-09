@@ -2,7 +2,7 @@
 
 ## Fix
 
-- [ ] initial piece rotation breaks some hexes?
+- [x] initial piece rotation breaks some hexes?
 - [ ] focus over sprites sometimes lost?
 
 ## Houses

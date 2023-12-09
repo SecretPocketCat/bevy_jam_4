@@ -25,9 +25,9 @@ impl Plugin for InputPlugin {
                     .insert(GamepadButtonType::South, GameAction::Move)
                     .insert(KeyCode::Space, GameAction::Move)
                     .insert(KeyCode::Q, GameAction::RotateCcw)
-                    .insert(MouseWheelDirection::Up, GameAction::RotateCcw)
+                    .insert(MouseWheelDirection::Down, GameAction::RotateCcw)
                     .insert(KeyCode::E, GameAction::RotateCw)
-                    .insert(MouseWheelDirection::Down, GameAction::RotateCw)
+                    .insert(MouseWheelDirection::Up, GameAction::RotateCw)
                     .build(),
             );
     }

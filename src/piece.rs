@@ -17,7 +17,7 @@ use bevy::{
     prelude::*,
     sprite::MaterialMesh2dBundle,
     ui::debug,
-    utils::{info, HashMap, HashSet},
+    utils::{HashMap, HashSet},
     window::PrimaryWindow,
 };
 use bevy_mod_picking::prelude::*;
@@ -139,13 +139,12 @@ fn spawn_piece(
 
                 // randomize rotation
                 let rotation_side = (0..6).choose(&mut rng).unwrap();
-
                 if rotation_side > 0 {
                     blueprint.connected_sides.rotate_left(rotation_side);
                 }
 
                 let mut blueprint = Some(&blueprint);
-                let mut side = Some(rotation_side);
+                let mut hex = Hex::ZERO;
 
                 if i > 0 {
                     let prev: &PieceHexData = hexes.values().last().unwrap();
@@ -158,33 +157,31 @@ fn spawn_piece(
                     }
 
                     if i == 1 {
-                        side = prev.data.connections().map_or(None, |connected_sides| {
+                        let side = prev.data.connections().map_or(None, |connected_sides| {
                             connected_sides
                                 .iter()
                                 .enumerate()
-                                .find(|(side, conn)| {
+                                .filter(|(side_index, conn)| {
                                     **conn == connected
                                         && blueprint.map_or(true, |bp| {
-                                            bp.connected_sides[get_opposite_side_index(*side)]
+                                            bp.connected_sides[get_opposite_side_index(*side_index)]
                                                 == connected
                                         })
                                 })
                                 .map(|(side, _)| side)
+                                .choose(&mut rng)
                         });
+
+                        match side {
+                            Some(side) => {
+                                hex = Hex::new(1, -1).rotate_cw(side as u32);
+                            }
+                            None => break,
+                        };
                     } else {
                         panic!("Size {i} is invalid");
                     }
                 }
-
-                if side.is_none() {
-                    break;
-                }
-
-                let hex = if i == 0 {
-                    Hex::ZERO
-                } else {
-                    side.map_or(Hex::ZERO, |side| Hex::new(1, -1).rotate_cw(side as u32))
-                };
 
                 let entity = cmd
                     .spawn((
@@ -205,13 +202,27 @@ fn spawn_piece(
                         },
                         PickableBundle::default(),
                     ))
+                    // .with_children(|b| {
+                    //     b.spawn(Text2dBundle {
+                    //         text: Text::from_section(
+                    //             format!("{},{}", hex.x, hex.y),
+                    //             TextStyle {
+                    //                 font_size: 30.0,
+                    //                 color: Color::WHITE,
+                    //                 ..default()
+                    //             },
+                    //         ),
+                    //         transform: Transform::from_xyz(0.0, 0.0, 10.0),
+                    //         ..default()
+                    //     });
+                    // })
                     .id();
 
                 hexes.insert(
                     hex,
                     PieceHexData {
                         entity,
-                        side_index: side.unwrap_or(0) as u8,
+                        side_index: rotation_side as u8,
                         data: blueprint.map_or(HexData::Empty, |bp| HexData::Route {
                             connections: bp.connected_sides.clone(),
                         }),
