@@ -27,19 +27,11 @@
 - [x] try triple hex pieces (triangles - 1 to 3 route hexes?)
 - [ ] randomly pick hex decorations for the empty hex
 
-## Scoring
-
-- [ ] multi-line multipliers (probly just double it?)
-
 ## Extra
 
-- [ ] consider a (baking) minigame to finish the cookies
-  - just a timer?
-  - push your luck?
 - [ ] refresh snapping on rotation
 - [ ] fix pieces moving on rotation (tween them back)
 
 ## Story
 
-Flavoured honeycomb sticks
-The bees got drunk on mead and mixed them up.
+???
