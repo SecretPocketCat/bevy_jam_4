@@ -440,22 +440,25 @@ pub fn spawn_grid(
     }
 
     // mid island
-    let island_range = match (map_radius, lvl.0) {
-        (0..=2, _) => None,
-        (_, 0..=2) => None,
-        (3..=5, _) => Some(0..=1),
+    let island_range = match map_radius {
+        0..=2 if lvl.0 <= 2 => None,
+        3..=4 => Some(0..=1),
         _ => Some(0..=2),
     };
 
     if let Some(island_range) = island_range {
         let mut skip_count = 0;
         let mut tween_offset_i = 0;
-        for island_hex in Hex::ZERO.spiral_range(island_range) {
+        for island_hex in Hex::ZERO.spiral_range(island_range.clone()) {
             if skip_count > 0 {
                 skip_count -= 1;
                 continue;
-            } else if rng.gen_bool(if map_radius < 4 { 0.25 } else { 0.15 }) {
-                skip_count = 3;
+            } else if rng.gen_bool(if island_range.end() == &1 {
+                0.225
+            } else {
+                0.125
+            }) {
+                skip_count = 2;
                 continue;
             } else {
                 tween_offset_i += 1;
