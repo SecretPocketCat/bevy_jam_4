@@ -1,20 +1,8 @@
 # Todo
 
-## Scoring
-
-- [x] add score UI
-- [x] add score on completion
-- [x] add time UI
-- [x] tick time
-- [x] remove time when resetting board
-- [x] final score state
-- [x] reset stuff when the playing state is exited
-- [x] show final score on the final score screen
-- [x] add replay btn to final score
-
 ## Scaling
 
-- [ ] scale based on level
+- scale based on level
   - [ ] map size
   - [ ] house count
   - [ ] blocked hexes in the center
@@ -63,6 +51,18 @@
 ## Story
 
 ???
+
+## Scoring
+
+- [x] add score UI
+- [x] add score on completion
+- [x] add time UI
+- [x] tick time
+- [x] remove time when resetting board
+- [x] final score state
+- [x] reset stuff when the playing state is exited
+- [x] show final score on the final score screen
+- [x] add replay btn to final score
 
 ## Graph
 

@@ -26,6 +26,7 @@ impl Plugin for ScorePlugin {
                 OnEnter(GameState::Game),
                 (setup_ui, restart_timer, restart_level),
             )
+            .add_systems(OnEnter(GameState::GameOver), (restart_level))
             .add_systems(
                 Update,
                 (
@@ -49,7 +50,7 @@ struct TimerText;
 pub struct Score(pub u32);
 
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
-pub struct Level(u32);
+pub struct Level(pub u32);
 
 #[derive(Debug, Resource, Default, Event)]
 pub struct UpdateScoreEv(pub i32);

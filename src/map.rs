@@ -4,6 +4,7 @@ use crate::{
     map_completion::CompletedMap,
     piece::{get_opposite_side_index, PieceHexData},
     reset::ResettableGrid,
+    score::Level,
     GameState,
 };
 use bevy::{
@@ -23,12 +24,14 @@ use bevy::{
 };
 use bevy_tweening::{Animator, EaseFunction};
 use hexx::{shapes, Direction, *};
-use rand::{seq::SliceRandom, thread_rng, Rng};
+use rand::{
+    seq::{IteratorRandom, SliceRandom},
+    thread_rng, Rng,
+};
 use strum::EnumIter;
 
 pub use self::edge_connection::EdgeConnection;
 
-pub const MAP_RADIUS: u32 = 1;
 pub const HEX_SIZE: f32 = 46.;
 pub const HEX_SIZE_INNER_MULT: f32 = 0.925;
 pub const HEX_SIZE_INNER: f32 = HEX_SIZE * HEX_SIZE_INNER_MULT;
@@ -231,6 +234,7 @@ pub fn spawn_grid(
     mut cmd: Commands,
     sprites: Res<TextureAssets>,
     completed_map: Option<Res<CompletedMap>>,
+    lvl: Res<Level>,
 ) {
     if completed_map.is_some() {
         cmd.remove_resource::<CompletedMap>();
@@ -244,8 +248,63 @@ pub fn spawn_grid(
         ..default()
     };
 
+    vec![
+        vec![
+            Direction::Top,
+            Direction::BottomLeft,
+            Direction::BottomRight,
+        ],
+        vec![Direction::Bottom, Direction::TopLeft, Direction::TopRight],
+    ];
+
+    let map_radius = match lvl.0 {
+        0..=1 => 2..=2,
+        2..=3 => 2..=3,
+        4..=5 => 3..=3,
+        6..=7 => 4..=4,
+        _ => 5..=5,
+    }
+    .choose(&mut rng)
+    .unwrap();
+
+    let direction_group = match lvl.0 {
+        0..=1 => vec![
+            vec![Direction::Top, Direction::Bottom],
+            vec![Direction::TopLeft, Direction::BottomRight],
+            vec![Direction::BottomLeft, Direction::TopRight],
+        ]
+        .choose(&mut rng)
+        .cloned()
+        .unwrap(),
+        2..=3 => vec![
+            vec![
+                Direction::Top,
+                Direction::BottomLeft,
+                Direction::BottomRight,
+            ],
+            vec![Direction::Bottom, Direction::TopLeft, Direction::TopRight],
+        ]
+        .choose(&mut rng)
+        .cloned()
+        .unwrap(),
+        4..=5 => Direction::ALL_DIRECTIONS
+            .choose_multiple(&mut rng, 4)
+            .cloned()
+            .collect(),
+        6..=7 => Direction::ALL_DIRECTIONS
+            .choose_multiple(&mut rng, 4)
+            .chain(Direction::ALL_DIRECTIONS.choose_multiple(&mut rng, 2))
+            .cloned()
+            .collect(),
+        _ => Direction::ALL_DIRECTIONS
+            .choose_multiple(&mut rng, 5)
+            .chain(Direction::ALL_DIRECTIONS.choose_multiple(&mut rng, 5))
+            .cloned()
+            .collect(),
+    };
+
     let mut graph = MapGraph::new_undirected();
-    let mut hexes: HashMap<Hex, MapHex> = shapes::hexagon(Hex::ZERO, MAP_RADIUS)
+    let mut hexes: HashMap<Hex, MapHex> = shapes::hexagon(Hex::ZERO, map_radius)
         .map(|hex| {
             let pos = layout.hex_to_world_pos(hex);
             let hex_len = hex.ulength() as u64;
@@ -265,7 +324,7 @@ pub fn spawn_grid(
                         None,
                         Vec3::ONE,
                         350,
-                        if hex_len == MAP_RADIUS as u64 {
+                        if hex_len == map_radius as u64 {
                             EaseFunction::BackOut
                         } else {
                             EaseFunction::QuadraticOut
@@ -275,20 +334,21 @@ pub fn spawn_grid(
                 )),
                 ResettableGrid,
             ))
-            .with_children(|b| {
-                b.spawn(Text2dBundle {
-                    text: Text::from_section(
-                        format!("{},{}", hex.x, hex.y),
-                        TextStyle {
-                            font_size: 17.0,
-                            color: Color::BLACK,
-                            ..default()
-                        },
-                    ),
-                    transform: Transform::from_xyz(0.0, 0.0, 10.0),
-                    ..default()
-                });
-            });
+            // .with_children(|b| {
+            //     b.spawn(Text2dBundle {
+            //         text: Text::from_section(
+            //             format!("{},{}", hex.x, hex.y),
+            //             TextStyle {
+            //                 font_size: 17.0,
+            //                 color: Color::BLACK,
+            //                 ..default()
+            //             },
+            //         ),
+            //         transform: Transform::from_xyz(0.0, 0.0, 10.0),
+            //         ..default()
+            //     });
+            // })
+            ;
             (hex, MapHex::new(&mut graph))
         })
         .collect();
@@ -298,22 +358,11 @@ pub fn spawn_grid(
     let mut house_hexes = HashSet::with_capacity(count);
     let mut wedge_indices = HashSet::with_capacity(count);
 
-    let direction_group = [
-        [
-            Direction::Top,
-            Direction::BottomLeft,
-            Direction::BottomRight,
-        ],
-        [Direction::Bottom, Direction::TopLeft, Direction::TopRight],
-    ]
-    .choose(&mut rng)
-    .unwrap();
-
-    for dir in direction_group {
+    for dir in direction_group.iter() {
         'wedge: loop {
             for (i, hex) in Hex::ZERO
                 .corner_wedge(
-                    ((MAP_RADIUS - 2.min(MAP_RADIUS))..=(MAP_RADIUS + 1)).rev(),
+                    ((map_radius - 2.min(map_radius))..=(map_radius + 1)).rev(),
                     *dir,
                 )
                 .enumerate()
