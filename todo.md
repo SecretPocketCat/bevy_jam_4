@@ -2,9 +2,9 @@
 
 ## Scoring
 
-- [ ] add score UI
+- [x] add score UI
 - [ ] add score on completion
-- [ ] add time UI
+- [x] add time UI
 - [ ] tick time
 - [ ] show final score on time over
 - [ ] remove time when resetting board
