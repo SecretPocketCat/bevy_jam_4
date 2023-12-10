@@ -3,9 +3,9 @@
 ## Scaling
 
 - scale based on level
-  - [ ] map size
-  - [ ] house count
-  - [ ] blocked hexes in the center
+  - [x] map size
+  - [x] house count
+  - [x] blocked hexes in the center
 
 ## Feedback
 
@@ -37,6 +37,7 @@
 ## Extra
 
 - [ ] Pause menu
+- [ ] Start with extra few single pieces
 - [x] stagger piece spawns
 - [x] delay initial piece spawns (after board)
 - [ ] fix pieces moving on rotation (tween them back)
