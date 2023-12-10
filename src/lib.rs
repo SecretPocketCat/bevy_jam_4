@@ -7,6 +7,7 @@ mod debug;
 mod input;
 mod loading;
 mod map;
+mod map_completion;
 mod math;
 mod menu;
 mod mouse;
@@ -21,6 +22,7 @@ use bevy::prelude::*;
 use cooldown::CooldownPlugin;
 use input::InputPlugin;
 use map::MapPlugin;
+use map_completion::MapCompletionPlugin;
 use mouse::CursorPlugin;
 use reset::ResetPlugin;
 
@@ -52,6 +54,7 @@ impl Plugin for GamePlugin {
             AnimationPlugin,
             CooldownPlugin,
             ResetPlugin,
+            MapCompletionPlugin,
         ));
 
         if cfg!(debug_assertions) {

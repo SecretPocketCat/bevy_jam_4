@@ -8,6 +8,7 @@ use crate::{
     input::GameAction,
     loading::TextureAssets,
     map::{WorldLayout, WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
+    map_completion::CompletedMap,
     math::{asymptotic_smoothing, asymptotic_smoothing_with_delta_time},
     mouse::CursorPosition,
     reset::Resettable,
@@ -81,7 +82,7 @@ impl Default for HexBlueprints {
 }
 
 #[derive(Component)]
-struct Piece {
+pub struct Piece {
     hexes: HashMap<Hex, PieceHexData>,
     target_hex: Option<Hex>,
 }
@@ -105,21 +106,23 @@ impl Plugin for PiecePlugin {
             .add_systems(
                 Update,
                 (
-                    spawn_piece,
+                    spawn_pieces,
                     drag_piece,
-                    drag_piece_end,
+                    drag_piece_end.after(spawn_pieces),
                     rotate_piece,
                     over_piece.after(out_piece),
                     out_piece,
                 )
                     .distributive_run_if(
-                        in_state(GameState::Playing).and_then(resource_exists::<WorldMap>()),
+                        in_state(GameState::Playing)
+                            .and_then(resource_exists::<WorldMap>())
+                            .and_then(not(resource_exists::<CompletedMap>())),
                     ),
             );
     }
 }
 
-fn spawn_piece(
+fn spawn_pieces(
     mut cmd: Commands,
     map_layout: Res<WorldLayout>,
     blueprints: Res<HexBlueprints>,
@@ -328,39 +331,7 @@ fn drag_piece_end(
             if let Ok((_, t, mut initial_pos, piece)) = piece_q.get_mut(parent.get()) {
                 if let Some(hex) = piece.target_hex {
                     initial_pos.0 = map_layout.hex_to_world_pos(hex).extend(t.translation.z);
-
-                    // place hexes
-                    map.place_piece(hex, &piece.hexes);
-
-                    if let Some((completed_routes, dead_ends)) = map.get_completed_routes() {
-                        for route in completed_routes {
-                            // todo: raise score
-
-                            for (i, hex) in route.iter().enumerate() {
-                                cmd.entity(map.hexes[hex].placed_hex_e.unwrap()).insert(
-                                    Animator::new(
-                                        delay_tween(
-                                            get_scale_tween(
-                                                None,
-                                                (Vec2::ONE * 1.35).extend(1.),
-                                                350,
-                                                EaseFunction::BackOut,
-                                            ),
-                                            i as u64 * 80,
-                                        )
-                                        .then(
-                                            get_scale_tween(
-                                                None,
-                                                Vec3::ONE,
-                                                300,
-                                                EaseFunction::QuadraticOut,
-                                            ),
-                                        ),
-                                    ),
-                                );
-                            }
-                        }
-                    }
+                    cmd.entity(parent.get()).remove::<Piece>();
 
                     // stop hexes from being pickable
                     if let Ok(children) = children_q.get(parent.get()) {
@@ -369,8 +340,16 @@ fn drag_piece_end(
                         }
                     }
 
+                    // place hexes
+                    map.place_piece(hex, &piece.hexes);
+
+                    if let Some(completed_map) = map.get_completed_routes() {
+                        cmd.insert_resource(completed_map);
+
+                        return;
+                    }
+
                     // remove piece to spawn new ones
-                    cmd.entity(parent.get()).remove::<Piece>();
                     placed_piece = Some(parent.get());
                 } else {
                     cmd.entity(parent.get()).insert(get_translation_anim(

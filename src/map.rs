@@ -1,6 +1,7 @@
 use crate::{
     animation::{delay_tween, get_scale_anim, get_scale_tween},
     loading::TextureAssets,
+    map_completion::CompletedMap,
     piece::{get_opposite_side_index, PieceHexData},
     reset::Resettable,
     GameState,
@@ -25,9 +26,9 @@ use hexx::{shapes, Direction, *};
 use rand::{seq::SliceRandom, thread_rng, Rng};
 use strum::EnumIter;
 
-use self::edge_connection::EdgeConnection;
+pub use self::edge_connection::EdgeConnection;
 
-pub const MAP_RADIUS: u32 = 2;
+pub const MAP_RADIUS: u32 = 1;
 pub const HEX_SIZE: f32 = 46.;
 pub const HEX_SIZE_INNER_MULT: f32 = 0.925;
 pub const HEX_SIZE_INNER: f32 = HEX_SIZE * HEX_SIZE_INNER_MULT;
@@ -39,7 +40,7 @@ pub const HEX_HEIGHT: f32 = HEX_SIZE * 2.;
 pub struct MapPlugin;
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Playing), setup_grid);
+        app.add_systems(OnEnter(GameState::Playing), spawn_grid);
     }
 }
 
@@ -143,7 +144,7 @@ impl WorldMap {
         }
     }
 
-    pub fn get_completed_routes(&mut self) -> Option<(Vec<Vec<Hex>>, Vec<EdgeConnection>)> {
+    pub fn get_completed_routes(&mut self) -> Option<CompletedMap> {
         if let Some(hex) = self.houses.iter().next() {
             let start_node = self.hexes[hex].node_index;
             let res = dijkstra(&self.graph, start_node.into(), None, |_| 1);
@@ -157,8 +158,8 @@ impl WorldMap {
             if all_reachable {
                 info!("reached all houses reached from {hex:?}");
 
-                Some((
-                    other_houses
+                Some(CompletedMap {
+                    routes: other_houses
                         .iter()
                         .map(|house| {
                             let end = self.hexes[house].node_index;
@@ -186,14 +187,15 @@ impl WorldMap {
                                 .collect()
                         })
                         .collect(),
-                    self.graph
+                    dead_ends: self
+                        .graph
                         .node_indices()
                         .filter(|n| self.graph.neighbors_undirected(*n).count() == 1)
                         .map(|n| self.hex_edge_nodes.get(&(n.index() as u32)))
                         .flatten()
                         .cloned()
                         .collect(),
-                ))
+                })
             } else {
                 None
             }
@@ -225,12 +227,17 @@ impl MapHex {
     }
 }
 
-pub fn setup_grid(
+pub fn spawn_grid(
     mut cmd: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
     sprites: Res<TextureAssets>,
+    completed_map: Option<Res<CompletedMap>>,
 ) {
+    if completed_map.is_some() {
+        cmd.remove_resource::<CompletedMap>();
+    }
+
     let mut rng = thread_rng();
 
     let layout = HexLayout {

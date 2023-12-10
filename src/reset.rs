@@ -1,7 +1,7 @@
 use bevy::{ecs::system::SystemId, prelude::*, window::PrimaryWindow};
 use leafwing_input_manager::prelude::*;
 
-use crate::{input::GameAction, loading::MainCam, map::setup_grid, GameState};
+use crate::{input::GameAction, loading::MainCam, map::spawn_grid, GameState};
 
 #[derive(Component)]
 pub struct Resettable;
@@ -17,7 +17,7 @@ impl Plugin for ResetPlugin {
     fn build(&self, app: &mut App) {
         let systems = RegisteredSystems {
             reset: app.world.register_system(reset_board),
-            spawn_board: app.world.register_system(setup_grid),
+            spawn_board: app.world.register_system(spawn_grid),
         };
 
         app.insert_resource(systems);
