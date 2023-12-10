@@ -258,14 +258,11 @@ pub fn spawn_grid(
     ];
 
     let map_radius = match lvl.0 {
-        0..=1 => 2..=2,
-        2..=3 => 2..=3,
-        4..=5 => 3..=3,
-        6..=7 => 4..=4,
-        _ => 5..=5,
-    }
-    .choose(&mut rng)
-    .unwrap();
+        0..=1 => 2,
+        2..=4 => 3,
+        5..=7 => 4,
+        _ => 5,
+    };
 
     let direction_group = match lvl.0 {
         0..=1 => vec![
@@ -372,7 +369,6 @@ pub fn spawn_grid(
                 }
 
                 if rng.gen_bool(0.25) {
-                    // todo: tween
                     let entity = cmd
                         .spawn((
                             SpriteSheetBundle {
@@ -403,6 +399,45 @@ pub fn spawn_grid(
                     break 'wedge;
                 }
             }
+        }
+    }
+
+    // mid island
+    if map_radius >= 3 {
+        let mut skip_count = 0;
+        let mut tween_offset_i = 0;
+        let island_range = if map_radius < 5 { 0..=1 } else { 0..=2 };
+        for island_hex in Hex::ZERO.spiral_range(island_range) {
+            if skip_count > 0 {
+                skip_count -= 1;
+                continue;
+            } else if rng.gen_bool(if map_radius < 4 { 0.25 } else { 0.15 }) {
+                skip_count = 3;
+                continue;
+            } else {
+                tween_offset_i += 1;
+            }
+
+            let entity = cmd
+                .spawn((
+                    SpriteSheetBundle {
+                        transform: Transform {
+                            translation: layout.hex_to_world_pos(island_hex).extend(1.),
+                            scale: Vec2::ZERO.extend(1.),
+                            ..default()
+                        },
+                        sprite: TextureAtlasSprite::new(10),
+                        texture_atlas: sprites.tiles.clone(),
+                        ..default()
+                    },
+                    Animator::new(delay_tween(
+                        get_scale_tween(None, Vec3::ONE, 400, EaseFunction::BackOut),
+                        300 + tween_offset_i * 80,
+                    )),
+                    ResettableGrid,
+                ))
+                .id();
+            hexes.insert(island_hex, MapHex::occupied(entity, &mut graph));
         }
     }
 
