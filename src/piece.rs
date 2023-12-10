@@ -88,7 +88,7 @@ struct Piece {
 
 #[derive(Component)]
 pub struct PieceHexData {
-    entity: Entity,
+    pub entity: Entity,
     side_index: u8,
     pub connections: Option<[bool; 6]>,
 }
@@ -290,7 +290,7 @@ fn drag_piece(
                 if piece.hexes.keys().all(|h| {
                     map.hexes
                         .get(&(target_hex + *h))
-                        .map_or(false, |map_hex| !map_hex.occupied)
+                        .map_or(false, |map_hex| map_hex.placed_hex_e.is_none())
                 }) {
                     piece.target_hex = Some(target_hex);
 
@@ -331,7 +331,36 @@ fn drag_piece_end(
 
                     // place hexes
                     map.place_piece(hex, &piece.hexes);
-                    map.get_routes();
+
+                    if let Some(completed_routes) = map.get_routes() {
+                        for route in completed_routes {
+                            // todo: raise score
+
+                            for (i, hex) in route.iter().enumerate() {
+                                cmd.entity(map.hexes[hex].placed_hex_e.unwrap()).insert(
+                                    Animator::new(
+                                        delay_tween(
+                                            get_scale_tween(
+                                                None,
+                                                (Vec2::ONE * 1.35).extend(1.),
+                                                350,
+                                                EaseFunction::BackOut,
+                                            ),
+                                            i as u64 * 80,
+                                        )
+                                        .then(
+                                            get_scale_tween(
+                                                None,
+                                                Vec3::ONE,
+                                                300,
+                                                EaseFunction::QuadraticOut,
+                                            ),
+                                        ),
+                                    ),
+                                );
+                            }
+                        }
+                    }
 
                     // stop hexes from being pickable
                     if let Ok(children) = children_q.get(parent.get()) {

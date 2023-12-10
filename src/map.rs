@@ -27,7 +27,7 @@ use strum::EnumIter;
 
 use self::edge_connection::EdgeConnection;
 
-pub const MAP_RADIUS: u32 = 2;
+pub const MAP_RADIUS: u32 = 1;
 pub const HEX_SIZE: f32 = 46.;
 pub const HEX_SIZE_INNER_MULT: f32 = 0.925;
 pub const HEX_SIZE_INNER: f32 = HEX_SIZE * HEX_SIZE_INNER_MULT;
@@ -53,7 +53,7 @@ mod edge_connection {
 
     use hexx::Hex;
 
-    #[derive(Debug, Hash, PartialEq, Eq)]
+    #[derive(Debug, Hash, PartialEq, Eq, Clone)]
     pub struct EdgeConnection(Hex, Hex);
 
     impl EdgeConnection {
@@ -64,6 +64,10 @@ mod edge_connection {
                 _ => Self(b, a),
             }
         }
+
+        pub fn first(&self) -> Hex {
+            self.0
+        }
     }
 }
 
@@ -73,15 +77,23 @@ pub struct WorldMap {
     houses: HashSet<Hex>,
     graph: MapGraph,
     hex_nodes: HashMap<NodeIndex, Hex>,
-    edge_nodes: HashMap<EdgeConnection, NodeIndex>,
+    hex_edge_nodes: HashMap<NodeIndex, EdgeConnection>,
+    edge_connection_nodes: HashMap<EdgeConnection, NodeIndex>,
 }
 
 impl WorldMap {
     fn get_or_add_edge_connection(&mut self, a: Hex, b: Hex) -> u32 {
+        let edge_conn = EdgeConnection::new(a, b);
+
         *self
-            .edge_nodes
-            .entry(EdgeConnection::new(a, b))
-            .or_insert_with(|| self.graph.add_node(()).index() as u32)
+            .edge_connection_nodes
+            .entry(edge_conn.clone())
+            .or_insert_with(|| {
+                let index = self.graph.add_node(()).index() as u32;
+                self.hex_edge_nodes.insert(index, edge_conn);
+
+                index
+            })
     }
 
     fn add_hex_graph_edges(&mut self, hex: &Hex, edge_connections: &[bool; 6]) {
@@ -112,66 +124,92 @@ impl WorldMap {
     pub fn place_piece(&mut self, hex: Hex, piece_hexes: &HashMap<Hex, PieceHexData>) {
         let placed_hexes: Vec<_> = piece_hexes
             .iter()
-            .map(|(key, val)| (hex + *key, val.connections.clone()))
+            .map(|(key, val)| (hex + *key, (val.connections.clone(), val.entity.clone())))
             .collect();
 
         // place hexes
-        for (hex, connected_sides) in placed_hexes.iter() {
+        for (hex, (connected_sides, hex_e)) in placed_hexes.iter() {
             if let Some(connected_sides) = connected_sides {
                 self.add_hex_graph_edges(&hex, connected_sides);
             }
 
             self.hexes.entry(*hex).and_modify(|map_hex| {
-                map_hex.occupied = true;
+                map_hex.placed_hex_e = Some(*hex_e);
             });
         }
     }
 
-    pub fn get_routes(&mut self) {
+    pub fn get_routes(&mut self) -> Option<Vec<Vec<Hex>>> {
         if let Some(hex) = self.houses.iter().next() {
-            let res = dijkstra(&self.graph, self.hexes[hex].node_index.into(), None, |_| 1);
+            let start_node = self.hexes[hex].node_index;
+            let res = dijkstra(&self.graph, start_node.into(), None, |_| 1);
 
-            let reached: Vec<_> = self
-                .houses
+            let other_houses: Vec<_> = self.houses.iter().filter(|h| *h != hex).cloned().collect();
+
+            let all_reachable = other_houses
                 .iter()
-                .filter(|h| *h != hex)
-                .filter(|h| res.contains_key(&self.hexes[*h].node_index.into()))
-                .collect();
+                .all(|h| res.contains_key(&self.hexes[h].node_index.into()));
 
-            info!("{reached:?} houses reached from {hex:?}");
+            if all_reachable {
+                // todo: use A* to get paths && djikstra results to get dead-ends
+                info!("reached all houses reached from {hex:?}");
 
-            // if all_reachable {
-            //     // todo: use A* to get paths
-            //     info!("{all_reachable} houses reached");
-            // } else {
-            //     info!("All houses not reached yet");
-            // }
+                Some(
+                    other_houses
+                        .iter()
+                        .map(|house| {
+                            let end = self.hexes[house].node_index;
+                            let (_, path) = astar(
+                                &self.graph,
+                                start_node.into(),
+                                |n| n == end.into(),
+                                |_| 1,
+                                |n| {
+                                    let node_index = n.index() as u32;
+                                    let hex =
+                                        self.hex_nodes.get(&node_index).cloned().unwrap_or_else(
+                                            || self.hex_edge_nodes[&node_index].first(),
+                                        );
+                                    house.unsigned_distance_to(hex)
+                                },
+                            )
+                            .unwrap();
+                            info!("Path from {hex:?} to {house:?}: {path:?}");
 
-            // astar
-            // None
+                            path.iter()
+                                .map(|n| self.hex_nodes.get(&(n.index() as u32)))
+                                .flatten()
+                                .cloned()
+                                .collect()
+                        })
+                        .collect(),
+                )
+            } else {
+                None
+            }
+        } else {
+            None
         }
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct MapHex {
-    pub entity: Entity,
-    pub occupied: bool,
+    pub placed_hex_e: Option<Entity>,
     node_index: NodeIndex,
 }
 
 impl MapHex {
-    pub fn new(entity: Entity, graph: &mut MapGraph) -> Self {
+    pub fn new(graph: &mut MapGraph) -> Self {
         Self {
-            entity,
+            placed_hex_e: None,
             node_index: graph.add_node(()).index() as u32,
-            occupied: false,
         }
     }
 
-    pub fn occupied(entity: Entity, graph: &mut MapGraph) -> Self {
-        let mut hex = Self::new(entity, graph);
-        hex.occupied = true;
+    pub fn occupied(hex_e: Entity, graph: &mut MapGraph) -> Self {
+        let mut hex = Self::new(graph);
+        hex.placed_hex_e = Some(hex_e);
 
         hex
     }
@@ -251,7 +289,7 @@ pub fn setup_grid(
                     });
                 })
                 .id();
-            (hex, MapHex::new(entity, &mut graph))
+            (hex, MapHex::new(&mut graph))
         })
         .collect();
 
@@ -303,7 +341,7 @@ pub fn setup_grid(
 
                     hexes
                         .entry(hex)
-                        .and_modify(|h| h.occupied = true)
+                        .and_modify(|h| h.placed_hex_e = Some(entity.clone()))
                         .or_insert_with(|| MapHex::occupied(entity, &mut graph));
                     house_hexes.insert(hex);
                     wedge_indices.insert(i);
@@ -314,7 +352,7 @@ pub fn setup_grid(
         }
     }
 
-    let mut world_map = WorldMap {
+    let world_map = WorldMap {
         houses: house_hexes.iter().map(|h| *h).collect(),
         hex_nodes: hexes
             .iter()
@@ -322,7 +360,8 @@ pub fn setup_grid(
             .collect(),
         hexes,
         graph,
-        edge_nodes: HashMap::new(),
+        edge_connection_nodes: HashMap::new(),
+        hex_edge_nodes: HashMap::new(),
     };
 
     cmd.insert_resource(WorldLayout(layout));
