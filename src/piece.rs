@@ -415,6 +415,7 @@ struct HoveredPiece(Option<HoveredPieceEntities>);
 fn over_piece(
     mut ev_r: EventReader<Pointer<Over>>,
     parent_q: Query<&Parent>,
+    mut trans_q: Query<&mut Transform>,
     mut hovered: ResMut<HoveredPiece>,
 ) {
     for ev in ev_r.read() {
@@ -423,6 +424,10 @@ fn over_piece(
                 piece_e: parent.get(),
                 hex_e: ev.target,
             });
+
+            if let Ok(mut t) = trans_q.get_mut(parent.get()) {
+                t.translation.z = 10.;
+            }
         }
     }
 }
@@ -430,12 +435,17 @@ fn over_piece(
 fn out_piece(
     mut ev_r: EventReader<Pointer<Out>>,
     parent_q: Query<&Parent>,
+    mut trans_q: Query<&mut Transform>,
     mut hovered: ResMut<HoveredPiece>,
 ) {
     for ev in ev_r.read() {
         if let Ok(parent) = parent_q.get(ev.target) {
             if let Some(e) = &hovered.0 {
                 if e.piece_e == parent.get() {
+                    if let Ok(mut t) = trans_q.get_mut(e.piece_e) {
+                        t.translation.z = 1.;
+                    }
+
                     hovered.take();
                 }
             }
@@ -459,12 +469,12 @@ fn rotate_piece(
     }
 
     if let Some(clockwise) = rotate_cw {
-        if let Some(e) = &hovered.0 {
-            if let Ok(mut piece) = piece_q.get_mut(e.piece_e) {
+        if let Some(hovered) = &hovered.0 {
+            if let Ok(mut piece) = piece_q.get_mut(hovered.piece_e) {
                 let center_hex = *piece
                     .hexes
                     .iter()
-                    .find(|(_, data)| data.entity == e.hex_e)
+                    .find(|(_, data)| data.entity == hovered.hex_e)
                     .unwrap()
                     .0;
 
@@ -513,7 +523,8 @@ fn rotate_piece(
                     .collect();
 
                 piece.target_hex.take();
-                cmd.entity(e.piece_e).insert(Cooldown::<Rotating>::new(300));
+                cmd.entity(hovered.piece_e)
+                    .insert(Cooldown::<Rotating>::new(300));
             }
         }
     }

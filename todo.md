@@ -11,8 +11,8 @@
 
 ## Feedback
 
-- [ ] fix/refresh snapping on rotation
-- [ ] set higher z for dragged piece
+- [x] fix/refresh snapping on rotation
+- [x] set higher z for dragged piece
 - [ ] highligh selected & dragged piece
 - [ ] remaining pieces UI
 
