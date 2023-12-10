@@ -1,12 +1,5 @@
 # Todo
 
-## Scaling
-
-- scale based on level
-  - [x] map size
-  - [x] house count
-  - [x] blocked hexes in the center
-
 ## Feedback
 
 - [x] fix/refresh snapping on rotation
@@ -47,6 +40,13 @@
 ## Story
 
 ???
+
+## Scaling
+
+- scale based on level
+  - [x] map size
+  - [x] house count
+  - [x] blocked hexes in the center
 
 ## Houses
 
