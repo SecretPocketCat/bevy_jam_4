@@ -215,7 +215,7 @@ pub struct MapHex {
 }
 
 impl MapHex {
-    pub fn new(graph: &mut MapGraph) -> Self {
+    pub fn empty(graph: &mut MapGraph) -> Self {
         Self {
             placed_hex_e: None,
             node_index: graph.add_node(()).index() as u32,
@@ -223,7 +223,7 @@ impl MapHex {
     }
 
     pub fn occupied(hex_e: Entity, graph: &mut MapGraph) -> Self {
-        let mut hex = Self::new(graph);
+        let mut hex = Self::empty(graph);
         hex.placed_hex_e = Some(hex_e);
 
         hex
@@ -346,7 +346,7 @@ pub fn spawn_grid(
             //     });
             // })
             ;
-            (hex, MapHex::new(&mut graph))
+            (hex, MapHex::empty(&mut graph))
         })
         .collect();
 
@@ -369,6 +369,7 @@ pub fn spawn_grid(
                 }
 
                 if rng.gen_bool(0.25) {
+                    let tween_delay = 500 + house_hexes.len() as u64 * 80;
                     let entity = cmd
                         .spawn((
                             SpriteSheetBundle {
@@ -383,7 +384,7 @@ pub fn spawn_grid(
                             },
                             Animator::new(delay_tween(
                                 get_scale_tween(None, Vec3::ONE, 400, EaseFunction::BackOut),
-                                500 + house_hexes.len() as u64 * 80,
+                                tween_delay,
                             )),
                             ResettableGrid,
                         ))
@@ -395,6 +396,39 @@ pub fn spawn_grid(
                         .or_insert_with(|| MapHex::occupied(entity, &mut graph));
                     house_hexes.insert(hex);
                     wedge_indices.insert(i);
+
+                    let mut neighbours = hex.all_neighbors();
+
+                    if rng.gen_bool(0.5) {
+                        neighbours.reverse();
+                    }
+
+                    for (i, neighbour) in neighbours.iter().enumerate() {
+                        if hexes.contains_key(neighbour) {
+                            continue;
+                        } else if rng.gen_bool(0.25) {
+                            break;
+                        }
+
+                        cmd.spawn((
+                            SpriteSheetBundle {
+                                transform: Transform {
+                                    translation: layout.hex_to_world_pos(*neighbour).extend(1.),
+                                    scale: Vec2::ZERO.extend(1.),
+                                    ..default()
+                                },
+                                sprite: TextureAtlasSprite::new(12),
+                                texture_atlas: sprites.tiles.clone(),
+                                ..default()
+                            },
+                            Animator::new(delay_tween(
+                                get_scale_tween(None, Vec3::ONE, 400, EaseFunction::BackOut),
+                                tween_delay + i as u64 * 80,
+                            )),
+                            ResettableGrid,
+                        ));
+                        hexes.insert(*neighbour, MapHex::empty(&mut graph));
+                    }
 
                     break 'wedge;
                 }
