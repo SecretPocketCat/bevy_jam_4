@@ -88,6 +88,9 @@ pub struct Piece {
 }
 
 #[derive(Component)]
+pub struct PlacedPiece;
+
+#[derive(Component)]
 pub struct PieceHexData {
     pub entity: Entity,
     side_index: u8,
@@ -127,17 +130,19 @@ fn spawn_pieces(
     map_layout: Res<WorldLayout>,
     blueprints: Res<HexBlueprints>,
     piece_q: Query<&Piece>,
+    placed_piece_q: Query<(), With<PlacedPiece>>,
     sprites: Res<TextureAssets>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     if piece_q.iter().len() < 1 {
         let mut rng = thread_rng();
+        let piece_tween_delay = if placed_piece_q.is_empty() { 950 } else { 200 };
 
-        for y in [-250., 0., 250.] {
+        for (piece_i, y) in [-250., 0., 250.].iter().enumerate() {
             let size = blueprints.size_weighted_index.sample(&mut rng) + 1;
             let mut hexes = HashMap::with_capacity(3);
 
-            for i in 0..size {
+            for size_i in 0..size {
                 let mut blueprint =
                     (&blueprints.hexes[blueprints.weighted_index.sample(&mut rng)]).clone();
 
@@ -150,7 +155,7 @@ fn spawn_pieces(
                 let mut blueprint = Some(&blueprint);
                 let mut hex = Hex::ZERO;
 
-                if i > 0 {
+                if size_i > 0 {
                     let prev: &PieceHexData = hexes.values().last().unwrap();
                     let mut connected = false;
 
@@ -160,7 +165,7 @@ fn spawn_pieces(
                         connected = rng.gen_bool(0.75);
                     }
 
-                    if i == 1 {
+                    if size_i == 1 {
                         let side = prev.connections.map_or(None, |connected_sides| {
                             connected_sides
                                 .iter()
@@ -183,7 +188,7 @@ fn spawn_pieces(
                             None => break,
                         };
                     } else {
-                        panic!("Size {i} is invalid");
+                        panic!("Size {size_i} is invalid");
                     }
                 }
 
@@ -240,7 +245,7 @@ fn spawn_pieces(
             let children: Vec<_> = hexes.values().map(|d| d.entity).collect();
 
             // todo: raise z to prevent z-fighting
-            let pos = Vec3::new(y, 400., 1.);
+            let pos = Vec3::new(*y, 400., 1.);
             cmd.spawn(SpatialBundle::from_transform(
                 Transform::from_translation(pos).with_scale(Vec2::ZERO.extend(1.)),
             ))
@@ -252,7 +257,7 @@ fn spawn_pieces(
                 InitialPosition(pos),
                 Animator::new(delay_tween(
                     get_scale_tween(None, Vec3::ONE, 300, EaseFunction::BackOut),
-                    150,
+                    piece_tween_delay + piece_i as u64 * 80,
                 )),
                 Resettable,
             ))
@@ -331,7 +336,9 @@ fn drag_piece_end(
             if let Ok((_, t, mut initial_pos, piece)) = piece_q.get_mut(parent.get()) {
                 if let Some(hex) = piece.target_hex {
                     initial_pos.0 = map_layout.hex_to_world_pos(hex).extend(t.translation.z);
-                    cmd.entity(parent.get()).remove::<Piece>();
+                    cmd.entity(parent.get())
+                        .remove::<Piece>()
+                        .insert(PlacedPiece);
 
                     // stop hexes from being pickable
                     if let Ok(children) = children_q.get(parent.get()) {

@@ -229,8 +229,6 @@ impl MapHex {
 
 pub fn spawn_grid(
     mut cmd: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
     sprites: Res<TextureAssets>,
     completed_map: Option<Res<CompletedMap>>,
 ) {
@@ -246,66 +244,51 @@ pub fn spawn_grid(
         ..default()
     };
 
-    // materials
-    let border_material = materials.add(Color::DARK_GRAY.into());
-    let default_material = materials.add(Color::ANTIQUE_WHITE.into());
-
-    // mesh
-    let mesh = hexagonal_plane(&layout);
-    let mesh_handle = meshes.add(mesh);
-
     let mut graph = MapGraph::new_undirected();
     let mut hexes: HashMap<Hex, MapHex> = shapes::hexagon(Hex::ZERO, MAP_RADIUS)
         .map(|hex| {
             let pos = layout.hex_to_world_pos(hex);
             let hex_len = hex.ulength() as u64;
-            let entity = cmd
-                .spawn((
-                    ColorMesh2dBundle {
-                        transform: Transform::from_xyz(pos.x, pos.y, 0.0),
-                        mesh: mesh_handle.clone().into(),
-                        material: border_material.clone(),
+            cmd.spawn((
+                SpriteSheetBundle {
+                    transform: Transform {
+                        translation: pos.extend(0.),
+                        scale: Vec2::ZERO.extend(1.),
                         ..default()
                     },
-                    // todo: fix this tween?
-                    Animator::new(delay_tween(
-                        get_scale_tween(
-                            None,
-                            Vec3::ONE,
-                            350,
-                            if hex_len == MAP_RADIUS as u64 {
-                                EaseFunction::BackOut
-                            } else {
-                                EaseFunction::QuadraticOut
-                            },
-                        ),
-                        hex_len * 80,
-                    )),
-                    Resettable,
-                ))
-                .with_children(|b| {
-                    b.spawn(MaterialMesh2dBundle {
-                        mesh: meshes
-                            .add(shape::RegularPolygon::new(HEX_SIZE_INNER, 6).into())
-                            .into(),
-                        material: default_material.clone(),
-                        transform: Transform::from_xyz(0., 0., 0.1),
-                        ..default()
-                    });
-                    b.spawn(Text2dBundle {
-                        text: Text::from_section(
-                            format!("{},{}", hex.x, hex.y),
-                            TextStyle {
-                                font_size: 17.0,
-                                color: Color::BLACK,
-                                ..default()
-                            },
-                        ),
-                        transform: Transform::from_xyz(0.0, 0.0, 10.0),
-                        ..default()
-                    });
-                })
-                .id();
+                    sprite: TextureAtlasSprite::new(12),
+                    texture_atlas: sprites.tiles.clone(),
+                    ..default()
+                },
+                Animator::new(delay_tween(
+                    get_scale_tween(
+                        None,
+                        Vec3::ONE,
+                        350,
+                        if hex_len == MAP_RADIUS as u64 {
+                            EaseFunction::BackOut
+                        } else {
+                            EaseFunction::QuadraticOut
+                        },
+                    ),
+                    hex_len * 80,
+                )),
+                Resettable,
+            ))
+            .with_children(|b| {
+                b.spawn(Text2dBundle {
+                    text: Text::from_section(
+                        format!("{},{}", hex.x, hex.y),
+                        TextStyle {
+                            font_size: 17.0,
+                            color: Color::BLACK,
+                            ..default()
+                        },
+                    ),
+                    transform: Transform::from_xyz(0.0, 0.0, 10.0),
+                    ..default()
+                });
+            });
             (hex, MapHex::new(&mut graph))
         })
         .collect();
@@ -346,12 +329,17 @@ pub fn spawn_grid(
                             SpriteSheetBundle {
                                 transform: Transform {
                                     translation: layout.hex_to_world_pos(hex).extend(1.),
+                                    scale: Vec2::ZERO.extend(1.),
                                     ..default()
                                 },
                                 sprite: TextureAtlasSprite::new(11),
                                 texture_atlas: sprites.tiles.clone(),
                                 ..default()
                             },
+                            Animator::new(delay_tween(
+                                get_scale_tween(None, Vec3::ONE, 400, EaseFunction::BackOut),
+                                500 + house_hexes.len() as u64 * 80,
+                            )),
                             Resettable,
                         ))
                         .id();
@@ -383,18 +371,4 @@ pub fn spawn_grid(
 
     cmd.insert_resource(WorldLayout(layout));
     cmd.insert_resource(world_map);
-}
-
-/// Compute a bevy mesh from the layout
-fn hexagonal_plane(hex_layout: &HexLayout) -> Mesh {
-    let mesh_info = PlaneMeshBuilder::new(hex_layout)
-        .facing(Vec3::Z)
-        .with_scale(Vec3::splat(1.075))
-        .build();
-
-    Mesh::new(PrimitiveTopology::TriangleList)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, mesh_info.vertices)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, mesh_info.normals)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, mesh_info.uvs)
-        .with_indices(Some(Indices::U16(mesh_info.indices)))
 }
