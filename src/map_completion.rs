@@ -39,7 +39,7 @@ fn on_map_completed(
 ) {
     //  despawn pieces
     for e in piece_q.iter() {
-        cmd.entity(e).insert((
+        cmd.entity(e).try_insert((
             get_scale_anim(None, Vec3::ZERO, 300, EaseFunction::BackIn),
             DespawnOnTweenCompleted,
         ));
@@ -65,7 +65,7 @@ fn on_map_completed(
 
         for (i, hex) in route.iter().enumerate() {
             cmd.entity(map.hexes[hex].placed_hex_e.unwrap())
-                .insert(Animator::new(
+                .try_insert(Animator::new(
                     delay_tween(
                         get_scale_tween(
                             None,
@@ -110,7 +110,7 @@ fn on_map_completed(
                 .flatten()
                 .flat_map(|h| h.placed_hex_e)
             {
-                cmd.entity(e).insert(Animator::new(
+                cmd.entity(e).try_insert(Animator::new(
                     delay_tween(
                         get_scale_tween(
                             None,

@@ -253,7 +253,7 @@ fn spawn_pieces(
             cmd.spawn(SpatialBundle::from_transform(
                 Transform::from_translation(pos).with_scale(Vec2::ZERO.extend(1.)),
             ))
-            .insert((
+            .try_insert((
                 Piece {
                     hexes,
                     target_hex: None,
@@ -280,7 +280,9 @@ pub fn get_opposite_side_index(side: usize) -> usize {
 
 fn dragged(mut cmd: Commands, mut ev_r: EventReader<Pointer<Drag>>) {
     for ev in ev_r.read() {
-        cmd.entity(ev.target).insert(Dragged(ev.event.clone()));
+        if let Some(mut e_cmd) = cmd.get_entity(ev.target) {
+            e_cmd.try_insert(Dragged(ev.event.clone()));
+        }
     }
 }
 
@@ -319,7 +321,7 @@ fn drag_piece(
                 }) {
                     piece.target_hex = Some(target_hex);
 
-                    cmd.entity(parent.get()).insert(get_translation_anim(
+                    cmd.entity(parent.get()).try_insert(get_translation_anim(
                         None,
                         map_layout
                             .hex_to_world_pos(target_hex)
@@ -355,12 +357,12 @@ fn drag_piece_end(
                     initial_pos.0 = map_layout.hex_to_world_pos(hex).extend(t.translation.z);
                     cmd.entity(parent.get())
                         .remove::<Piece>()
-                        .insert(PlacedPiece);
+                        .try_insert(PlacedPiece);
 
                     // stop hexes from being pickable
                     if let Ok(children) = children_q.get(parent.get()) {
                         for child in children.iter() {
-                            cmd.entity(*child).insert(Pickable::IGNORE);
+                            cmd.entity(*child).try_insert(Pickable::IGNORE);
                         }
                     }
 
@@ -376,7 +378,7 @@ fn drag_piece_end(
                     // remove piece to spawn new ones
                     placed_piece = Some(parent.get());
                 } else {
-                    cmd.entity(parent.get()).insert(get_translation_anim(
+                    cmd.entity(parent.get()).try_insert(get_translation_anim(
                         None,
                         initial_pos.0,
                         250,
@@ -395,7 +397,7 @@ fn drag_piece_end(
                     continue;
                 }
 
-                cmd.entity(e).insert((
+                cmd.entity(e).try_insert((
                     get_scale_anim(None, Vec3::ZERO, 300, EaseFunction::BackIn),
                     DespawnOnTweenCompleted,
                 ));
@@ -500,7 +502,7 @@ fn rotate_piece(
                             }
                         }
 
-                        cmd.entity(piece_hex_data.entity).insert((
+                        cmd.entity(piece_hex_data.entity).try_insert((
                             Animator::new(Tracks::new([
                                 get_translation_tween(
                                     None,
@@ -524,7 +526,7 @@ fn rotate_piece(
 
                 piece.target_hex.take();
                 cmd.entity(hovered.piece_e)
-                    .insert(Cooldown::<Rotating>::new(300));
+                    .try_insert(Cooldown::<Rotating>::new(300));
             }
         }
     }

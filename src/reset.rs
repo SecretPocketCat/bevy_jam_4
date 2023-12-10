@@ -51,7 +51,7 @@ pub fn tween_reset(
     reset_q: Query<Entity, Or<(With<Resettable>, With<ResettableGrid>)>>,
 ) {
     for e in reset_q.iter() {
-        cmd.entity(e).insert((
+        cmd.entity(e).try_insert((
             get_relative_scale_anim(Vec2::ZERO.extend(1.), 350),
             DespawnOnTweenCompleted,
         ));

@@ -123,7 +123,7 @@ fn update_score(
         score.0 = score.0.saturating_add_signed(ev.0);
 
         if let Ok(e) = text_q.get_single() {
-            cmd.entity(e).insert(Animator::new(
+            cmd.entity(e).try_insert(Animator::new(
                 get_scale_tween(
                     None,
                     (Vec2::ONE * 1.5).extend(1.),
@@ -187,7 +187,7 @@ fn update_timer(
         score.0.set_elapsed(elapsed);
 
         if let Ok(e) = text_q.get_single() {
-            cmd.entity(e).insert(Animator::new(
+            cmd.entity(e).try_insert(Animator::new(
                 get_scale_tween(
                     None,
                     (Vec2::ONE * 1.5).extend(1.),
