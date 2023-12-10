@@ -10,7 +10,10 @@ use bevy::{ecs::system::SystemId, prelude::*};
 use bevy_trauma_shake::{Shake, TraumaCommands};
 use bevy_tweening::{Animator, EaseFunction};
 use hexx::Hex;
-use std::{ops::Add, time::Duration};
+use std::{
+    ops::{Add, Sub},
+    time::Duration,
+};
 
 pub struct ScorePlugin;
 impl Plugin for ScorePlugin {
@@ -171,8 +174,8 @@ fn update_timer(
     text_q: Query<Entity, With<TimerText>>,
 ) {
     for ev in ev_r.read() {
-        let duration = Duration::from_secs_f32(score.remaining_secs().add(ev.0).max(0.1));
-        score.0.set_duration(duration);
+        let elapsed = Duration::from_secs_f32(score.elapsed_secs().sub(ev.0).max(0.1));
+        score.0.set_elapsed(elapsed);
 
         if let Ok(e) = text_q.get_single() {
             cmd.entity(e).insert(Animator::new(
