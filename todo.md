@@ -14,12 +14,6 @@
 - [ ] highligh selected & dragged piece
 - [ ] remaining pieces UI
 
-## Houses
-
-- [x] place houses
-- [x] pieces can't be placed on houses
-- [ ] randomly add neighbouring tiles to houses (iterate, but break on first failed rand check to prevent islands behind houses)
-
 ## Debug
 
 - [x] reset map
@@ -53,6 +47,12 @@
 ## Story
 
 ???
+
+## Houses
+
+- [x] place houses
+- [x] pieces can't be placed on houses
+- [x] randomly add neighbouring tiles to houses (iterate, but break on first failed rand check to prevent islands behind houses)
 
 ## Scoring
 

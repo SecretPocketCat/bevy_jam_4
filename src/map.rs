@@ -354,12 +354,15 @@ pub fn spawn_grid(
     let count = 3;
     let mut house_hexes = HashSet::with_capacity(count);
     let mut wedge_indices = HashSet::with_capacity(count);
+    let allow_houses_outside_grid = lvl.0 >= 1;
 
     for dir in direction_group.iter() {
         'wedge: loop {
             for (i, hex) in Hex::ZERO
                 .corner_wedge(
-                    ((map_radius - 2.min(map_radius))..=(map_radius + 1)).rev(),
+                    ((map_radius - 2.min(map_radius))
+                        ..=(map_radius + if allow_houses_outside_grid { 1 } else { 0 }))
+                        .rev(),
                     *dir,
                 )
                 .enumerate()
