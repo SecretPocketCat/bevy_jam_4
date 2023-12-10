@@ -4,6 +4,7 @@
 mod animation;
 mod cooldown;
 mod debug;
+mod ecs;
 mod input;
 mod loading;
 mod map;
@@ -21,6 +22,7 @@ use crate::piece::PiecePlugin;
 use animation::AnimationPlugin;
 use bevy::prelude::*;
 use cooldown::CooldownPlugin;
+use ecs::EcsPlugin;
 use input::InputPlugin;
 use map::MapPlugin;
 use map_completion::MapCompletionPlugin;
@@ -58,6 +60,7 @@ impl Plugin for GamePlugin {
             ResetPlugin,
             MapCompletionPlugin,
             ScorePlugin,
+            EcsPlugin,
         ));
 
         if cfg!(debug_assertions) {

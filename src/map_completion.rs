@@ -2,9 +2,11 @@ use std::time::Duration;
 
 use crate::{
     animation::{delay_tween, get_scale_anim, get_scale_tween, DespawnOnTweenCompleted},
+    ecs::{DelayedEvent, DelayedSystem},
     map::{EdgeConnection, WorldMap},
     piece::Piece,
     reset::RegisteredSystems,
+    score::UpdateScoreEv,
     GameState,
 };
 use bevy::{ecs::system::SystemId, prelude::*};
@@ -18,8 +20,7 @@ impl Plugin for MapCompletionPlugin {
             Update,
             on_map_completed
                 .run_if(in_state(GameState::Playing).and_then(resource_added::<CompletedMap>())),
-        )
-        .add_systems(Update, (run_delayed_systems));
+        );
     }
 }
 
@@ -27,12 +28,6 @@ impl Plugin for MapCompletionPlugin {
 pub struct CompletedMap {
     pub routes: Vec<Vec<Hex>>,
     pub dead_ends: Vec<EdgeConnection>,
-}
-
-#[derive(Component)]
-pub struct DelayedSystem {
-    pub system_id: SystemId,
-    pub delay: Timer,
 }
 
 fn on_map_completed(
@@ -49,6 +44,12 @@ fn on_map_completed(
             DespawnOnTweenCompleted,
         ));
     }
+
+    // add routes score
+    cmd.spawn(DelayedEvent::new_ms(
+        300,
+        UpdateScoreEv(completed_map.routes.len() as i32 * 10),
+    ));
 
     let hex_stagger_ms = 80;
     let route_hex_in_ms = 350;
@@ -79,8 +80,6 @@ fn on_map_completed(
         }
     }
 
-    // todo: raise score & tween it
-
     let longest_route = completed_map
         .routes
         .iter()
@@ -90,6 +89,7 @@ fn on_map_completed(
 
     let deadends_delay =
         longest_route as u64 * hex_stagger_ms + route_hex_in_ms + route_hex_out_ms + 300;
+
     let mut reset_delay = deadends_delay;
 
     if !completed_map.dead_ends.is_empty() {
@@ -124,25 +124,16 @@ fn on_map_completed(
                 ));
             }
         }
+
+        // sub deadends score
+        cmd.spawn(DelayedEvent::new_ms(
+            deadends_delay + 300,
+            UpdateScoreEv(-(completed_map.dead_ends.len() as i32)),
+        ));
     }
 
     cmd.spawn(DelayedSystem {
         system_id: systems.reset,
         delay: Timer::new(Duration::from_millis(reset_delay), TimerMode::Once),
     });
-}
-
-fn run_delayed_systems(
-    mut query: Query<(Entity, &mut DelayedSystem)>,
-    mut commands: Commands,
-    time: Res<Time>,
-) {
-    for (e, mut sys) in query.iter_mut() {
-        sys.delay.tick(time.delta());
-
-        if sys.delay.just_finished() {
-            commands.run_system(sys.system_id);
-            commands.entity(e).despawn();
-        }
-    }
 }

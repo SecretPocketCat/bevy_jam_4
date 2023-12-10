@@ -38,8 +38,9 @@
 
 ## Extra
 
-- [ ] stagger piece spawns
-- [ ] delay initial piece spawns (after board)
+- [ ] Pause menu
+- [x] stagger piece spawns
+- [x] delay initial piece spawns (after board)
 - [ ] fix pieces moving on rotation (tween them back)
 
 ## Fix
