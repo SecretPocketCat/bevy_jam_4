@@ -1,6 +1,9 @@
+use crate::animation::{delay_tween, get_scale_tween};
 use crate::loading::TextureAssets;
+use crate::reset::Resettable;
 use crate::GameState;
 use bevy::prelude::*;
+use bevy_tweening::{Animator, EaseFunction};
 
 pub struct MenuPlugin;
 
@@ -9,7 +12,7 @@ pub struct MenuPlugin;
 impl Plugin for MenuPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Menu), setup_menu)
-            .add_systems(Update, click_play_button.run_if(in_state(GameState::Menu)))
+            .add_systems(Update, click_play_button)
             .add_systems(OnExit(GameState::Menu), cleanup_menu);
     }
 }
@@ -32,6 +35,43 @@ impl Default for ButtonColors {
 #[derive(Component)]
 struct Menu;
 
+pub fn spawn_play_btn(children: &mut ChildBuilder, tween_delay_ms: u64) -> Entity {
+    let button_colors = ButtonColors::default();
+    children
+        .spawn((
+            ButtonBundle {
+                style: Style {
+                    width: Val::Px(140.0),
+                    height: Val::Px(50.0),
+                    justify_content: JustifyContent::Center,
+                    align_items: AlignItems::Center,
+                    ..Default::default()
+                },
+                background_color: button_colors.normal.into(),
+                transform: Transform::from_scale(Vec2::ZERO.extend(1.)),
+                ..Default::default()
+            },
+            button_colors,
+            ChangeState(GameState::Game),
+            Animator::new(delay_tween(
+                get_scale_tween(None, Vec3::ONE, 350, EaseFunction::BackOut),
+                tween_delay_ms,
+            )),
+            Resettable,
+        ))
+        .with_children(|parent| {
+            parent.spawn(TextBundle::from_section(
+                "Play",
+                TextStyle {
+                    font_size: 40.0,
+                    color: Color::rgb(0.9, 0.9, 0.9),
+                    ..default()
+                },
+            ));
+        })
+        .id()
+}
+
 fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>) {
     commands
         .spawn((
@@ -44,38 +84,13 @@ fn setup_menu(mut commands: Commands, textures: Res<TextureAssets>) {
                     justify_content: JustifyContent::Center,
                     ..default()
                 },
+
                 ..default()
             },
             Menu,
         ))
         .with_children(|children| {
-            let button_colors = ButtonColors::default();
-            children
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            width: Val::Px(140.0),
-                            height: Val::Px(50.0),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            ..Default::default()
-                        },
-                        background_color: button_colors.normal.into(),
-                        ..Default::default()
-                    },
-                    button_colors,
-                    ChangeState(GameState::Playing),
-                ))
-                .with_children(|parent| {
-                    parent.spawn(TextBundle::from_section(
-                        "Play",
-                        TextStyle {
-                            font_size: 40.0,
-                            color: Color::rgb(0.9, 0.9, 0.9),
-                            ..default()
-                        },
-                    ));
-                });
+            spawn_play_btn(children, 0);
         });
     commands
         .spawn((

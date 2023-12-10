@@ -3,7 +3,7 @@ use crate::{
     loading::TextureAssets,
     map_completion::CompletedMap,
     piece::{get_opposite_side_index, PieceHexData},
-    reset::Resettable,
+    reset::ResettableGrid,
     GameState,
 };
 use bevy::{
@@ -40,7 +40,7 @@ pub const HEX_HEIGHT: f32 = HEX_SIZE * 2.;
 pub struct MapPlugin;
 impl Plugin for MapPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::Playing), spawn_grid);
+        app.add_systems(OnEnter(GameState::Game), spawn_grid);
     }
 }
 
@@ -273,7 +273,7 @@ pub fn spawn_grid(
                     ),
                     hex_len * 80,
                 )),
-                Resettable,
+                ResettableGrid,
             ))
             .with_children(|b| {
                 b.spawn(Text2dBundle {
@@ -340,7 +340,7 @@ pub fn spawn_grid(
                                 get_scale_tween(None, Vec3::ONE, 400, EaseFunction::BackOut),
                                 500 + house_hexes.len() as u64 * 80,
                             )),
-                            Resettable,
+                            ResettableGrid,
                         ))
                         .id();
 

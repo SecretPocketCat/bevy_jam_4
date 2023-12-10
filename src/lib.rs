@@ -5,6 +5,7 @@ mod animation;
 mod cooldown;
 mod debug;
 mod ecs;
+mod game_over;
 mod input;
 mod loading;
 mod map;
@@ -24,6 +25,7 @@ use bevy::prelude::*;
 use bevy_trauma_shake::TraumaPlugin;
 use cooldown::CooldownPlugin;
 use ecs::EcsPlugin;
+use game_over::GameOverPlugin;
 use input::InputPlugin;
 use map::MapPlugin;
 use map_completion::MapCompletionPlugin;
@@ -40,9 +42,10 @@ enum GameState {
     #[default]
     Loading,
     // During this State the actual game logic is executed
-    Playing,
+    Game,
     // Here the menu is drawn and waiting for player interaction
     Menu,
+    GameOver,
 }
 
 pub struct GamePlugin;
@@ -63,6 +66,7 @@ impl Plugin for GamePlugin {
             ScorePlugin,
             EcsPlugin,
             TraumaPlugin,
+            GameOverPlugin,
         ));
 
         if cfg!(debug_assertions) {

@@ -19,7 +19,7 @@ impl Plugin for MapCompletionPlugin {
         app.add_systems(
             Update,
             on_map_completed
-                .run_if(in_state(GameState::Playing).and_then(resource_added::<CompletedMap>())),
+                .run_if(in_state(GameState::Game).and_then(resource_added::<CompletedMap>())),
         );
     }
 }

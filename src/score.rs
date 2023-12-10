@@ -3,7 +3,7 @@ use crate::{
     map::{EdgeConnection, WorldMap},
     map_completion::CompletedMap,
     piece::Piece,
-    reset::RegisteredSystems,
+    reset::{RegisteredSystems, Resettable},
     GameState,
 };
 use bevy::{ecs::system::SystemId, prelude::*};
@@ -22,7 +22,10 @@ impl Plugin for ScorePlugin {
             .init_resource::<Level>()
             .add_event::<UpdateScoreEv>()
             .add_event::<UpdateTimerEv>()
-            .add_systems(OnEnter(GameState::Playing), (setup_ui, restart_timer))
+            .add_systems(
+                OnEnter(GameState::Game),
+                (setup_ui, restart_timer, restart_level),
+            )
             .add_systems(
                 Update,
                 (
@@ -31,7 +34,7 @@ impl Plugin for ScorePlugin {
                     (update_timer, tick_timer).run_if(resource_exists::<GameTimer>()),
                     update_level.run_if(resource_added::<CompletedMap>()),
                 )
-                    .distributive_run_if(in_state(GameState::Playing)),
+                    .distributive_run_if(in_state(GameState::Game)),
             );
     }
 }
@@ -43,7 +46,7 @@ struct ScoreText;
 struct TimerText;
 
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
-pub struct Score(u32);
+pub struct Score(pub u32);
 
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
 pub struct Level(u32);
@@ -81,6 +84,7 @@ fn setup_ui(mut cmd: Commands) {
                 ..default()
             }),
             ScoreText,
+            Resettable,
         ));
 
         b.spawn((
@@ -96,6 +100,7 @@ fn setup_ui(mut cmd: Commands) {
                 ..default()
             }),
             TimerText,
+            Resettable,
         ));
     });
 }
@@ -141,7 +146,11 @@ fn update_score(
 }
 
 fn restart_timer(mut cmd: Commands) {
-    cmd.insert_resource(GameTimer(Timer::from_seconds(90., TimerMode::Once)));
+    cmd.insert_resource(GameTimer(Timer::from_seconds(120., TimerMode::Once)));
+}
+
+fn restart_level(mut cmd: Commands) {
+    cmd.insert_resource(Level::default());
 }
 
 fn tick_timer(
@@ -149,6 +158,7 @@ fn tick_timer(
     mut timer: ResMut<GameTimer>,
     time: Res<Time>,
     mut text_q: Query<&mut Text, With<TimerText>>,
+    mut next: ResMut<NextState<GameState>>,
 ) {
     if timer.finished() {
         return;
@@ -161,9 +171,8 @@ fn tick_timer(
     }
 
     if timer.just_finished() {
-        cmd.add_trauma(0.8);
-
-        // todo: stop & transition to score state
+        cmd.add_trauma(0.3);
+        next.set(GameState::GameOver);
     }
 }
 

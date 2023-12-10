@@ -11,7 +11,7 @@ use crate::{
     map_completion::CompletedMap,
     math::{asymptotic_smoothing, asymptotic_smoothing_with_delta_time},
     mouse::CursorPosition,
-    reset::Resettable,
+    reset::ResettableGrid,
     GameState,
 };
 use bevy::{
@@ -121,7 +121,7 @@ impl Plugin for PiecePlugin {
                     out_piece,
                 )
                     .distributive_run_if(
-                        in_state(GameState::Playing)
+                        in_state(GameState::Game)
                             .and_then(resource_exists::<WorldMap>())
                             .and_then(not(resource_exists::<CompletedMap>())),
                     ),
@@ -263,7 +263,7 @@ fn spawn_pieces(
                     get_scale_tween(None, Vec3::ONE, 300, EaseFunction::BackOut),
                     piece_tween_delay + piece_i as u64 * 80,
                 )),
-                Resettable,
+                ResettableGrid,
             ))
             .push_children(&children);
         }

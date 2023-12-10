@@ -7,9 +7,6 @@ use bevy_editor_pls::EditorPlugin;
 use bevy_trauma_shake::TraumaCommands;
 use leafwing_input_manager::prelude::*;
 
-#[derive(Component)]
-pub struct PersistReset;
-
 #[derive(Actionlike, PartialEq, Eq, Hash, Clone, Copy, Debug, Reflect)]
 pub enum DebugAction {
     Reset,
@@ -26,9 +23,9 @@ impl Plugin for DebugPlugin {
                     .insert(KeyCode::R, DebugAction::Reset)
                     .build(),
             )
-            .add_systems(Update, handle_input);
+            .add_systems(Update, handle_input.run_if(in_state(GameState::Game)));
 
-        if cfg!(target_arch = "wasm32") {
+        if cfg!(not(target_arch = "wasm32")) {
             app.add_plugins(EditorPlugin::default());
         }
     }

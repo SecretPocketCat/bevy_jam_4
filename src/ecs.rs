@@ -1,8 +1,6 @@
-use std::time::Duration;
-
-use bevy::{ecs::system::SystemId, prelude::*};
-
 use crate::score::{UpdateScoreEv, UpdateTimerEv};
+use bevy::{ecs::system::SystemId, prelude::*};
+use std::time::Duration;
 
 pub struct EcsPlugin;
 impl Plugin for EcsPlugin {

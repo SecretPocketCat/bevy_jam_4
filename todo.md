@@ -6,8 +6,18 @@
 - [x] add score on completion
 - [x] add time UI
 - [x] tick time
-- [ ] show final score on time over
 - [x] remove time when resetting board
+- [x] final score state
+- [x] reset stuff when the playing state is exited
+- [x] show final score on the final score screen
+- [x] add replay btn to final score
+
+## Scaling
+
+- [ ] scale based on level
+  - [ ] map size
+  - [ ] house count
+  - [ ] blocked hexes in the center
 
 ## Feedback
 
@@ -45,6 +55,7 @@
 
 ## Fix
 
+- [ ] ressetting while dragging a piece causes a crash
 - [x] initial piece rotation breaks some hexes?
 - [x] focus over sprites sometimes lost
 - [ ] fix board animation/tweens
