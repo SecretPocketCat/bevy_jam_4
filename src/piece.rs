@@ -262,7 +262,7 @@ fn get_side_index(index: i8) -> usize {
     index.wrapping_rem_euclid(6) as usize
 }
 
-fn get_opposite_side_index(side: usize) -> usize {
+pub fn get_opposite_side_index(side: usize) -> usize {
     get_side_index((side + 3) as i8)
 }
 
@@ -290,7 +290,7 @@ fn drag_piece(
                 if piece.hexes.keys().all(|h| {
                     map.hexes
                         .get(&(target_hex + *h))
-                        .map_or(false, |map_hex| map_hex.placed.is_none())
+                        .map_or(false, |map_hex| !map_hex.occupied)
                 }) {
                     piece.target_hex = Some(target_hex);
 
@@ -331,6 +331,7 @@ fn drag_piece_end(
 
                     // place hexes
                     map.place_piece(hex, &piece.hexes);
+                    map.get_routes();
 
                     // stop hexes from being pickable
                     if let Ok(children) = children_q.get(parent.get()) {

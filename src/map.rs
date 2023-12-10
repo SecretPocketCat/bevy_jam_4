@@ -1,7 +1,7 @@
 use crate::{
     animation::{delay_tween, get_scale_anim, get_scale_tween},
     loading::TextureAssets,
-    piece::PieceHexData,
+    piece::{get_opposite_side_index, PieceHexData},
     reset::Resettable,
     GameState,
 };
@@ -9,7 +9,15 @@ use bevy::{
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
     sprite::MaterialMesh2dBundle,
-    utils::{HashMap, HashSet},
+    utils::{
+        petgraph::{
+            adj::NodeIndex,
+            algo::{astar, dijkstra},
+            data::Build,
+            graph::UnGraph,
+        },
+        HashMap, HashSet,
+    },
     window::PrimaryWindow,
 };
 use bevy_tweening::{Animator, EaseFunction};
@@ -17,7 +25,9 @@ use hexx::{shapes, Direction, *};
 use rand::{seq::SliceRandom, thread_rng, Rng};
 use strum::EnumIter;
 
-pub const MAP_RADIUS: u32 = 3;
+use self::edge_connection::EdgeConnection;
+
+pub const MAP_RADIUS: u32 = 2;
 pub const HEX_SIZE: f32 = 46.;
 pub const HEX_SIZE_INNER_MULT: f32 = 0.925;
 pub const HEX_SIZE_INNER: f32 = HEX_SIZE * HEX_SIZE_INNER_MULT;
@@ -36,13 +46,73 @@ impl Plugin for MapPlugin {
 #[derive(Debug, Resource, Deref, DerefMut)]
 pub struct WorldLayout(HexLayout);
 
+type MapGraph = UnGraph<(), ()>;
+
+mod edge_connection {
+    use std::cmp::Ordering;
+
+    use hexx::Hex;
+
+    #[derive(Debug, Hash, PartialEq, Eq)]
+    pub struct EdgeConnection(Hex, Hex);
+
+    impl EdgeConnection {
+        pub fn new(a: Hex, b: Hex) -> Self {
+            // sort the hexes in the same way to get the same hash
+            match format!("{}:{}", a.x, a.y).cmp(&format!("{}:{}", b.x, b.y)) {
+                Ordering::Greater => Self(a, b),
+                _ => Self(b, a),
+            }
+        }
+    }
+}
+
 #[derive(Debug, Resource)]
 pub struct WorldMap {
     pub hexes: HashMap<Hex, MapHex>,
-    houses: HashMap<Hex, Option<Vec<Hex>>>,
+    houses: HashSet<Hex>,
+    graph: MapGraph,
+    hex_nodes: HashMap<NodeIndex, Hex>,
+    edge_nodes: HashMap<EdgeConnection, NodeIndex>,
 }
 
 impl WorldMap {
+    fn get_or_add_edge_connection(&mut self, a: Hex, b: Hex) -> u32 {
+        *self
+            .edge_nodes
+            .entry(EdgeConnection::new(a, b))
+            .or_insert_with(|| {
+                info!("adding a new edge node {:?}", EdgeConnection::new(a, b));
+                self.graph.add_node(()).index() as u32
+            })
+    }
+
+    fn add_hex_graph_edges(&mut self, hex: &Hex, edge_connections: &[bool; 6]) {
+        let hex_data = &self.hexes[hex];
+        let hex_node = hex_data.node_index;
+
+        for (side, _) in edge_connections
+            .iter()
+            .enumerate()
+            .filter(|(_, conn)| **conn)
+        {
+            let target_hex = *hex + Hex::new(1, -1).rotate_cw(side as u32);
+            let edge_node = self.get_or_add_edge_connection(*hex, target_hex);
+
+            self.graph.add_edge(hex_node.into(), edge_node.into(), ());
+
+            // add connections to adjacent houses
+            if self.houses.contains(&target_hex) {
+                info!("Adding a house edge: {target_hex:?}, side: {side}");
+                self.graph.add_edge(
+                    edge_node.into(),
+                    self.hexes[&target_hex].node_index.into(),
+                    (),
+                );
+            }
+        }
+    }
+
     pub fn place_piece(&mut self, hex: Hex, piece_hexes: &HashMap<Hex, PieceHexData>) {
         let placed_hexes: Vec<_> = piece_hexes
             .iter()
@@ -50,42 +120,64 @@ impl WorldMap {
             .collect();
 
         // place hexes
-        for (hex, hex_data) in placed_hexes.iter() {
-            let connections = hex_data.map(|connected_sides| {
-                connected_sides
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, connected)| **connected)
-                    .map(|(side, _)| Hex::new(1, -1).rotate_cw(side as u32))
-                    .collect()
-            });
+        for (hex, connected_sides) in placed_hexes.iter() {
+            if let Some(connected_sides) = connected_sides {
+                self.add_hex_graph_edges(&hex, connected_sides);
+            }
 
             self.hexes.entry(*hex).and_modify(|map_hex| {
-                map_hex.placed = Some(PlacedHex(connections));
+                map_hex.occupied = true;
             });
         }
     }
 
-    pub fn check_routes(&mut self) {
-        // for house_hex in self.houses.iter().filter(|(_, route)| route.is_none()) {}
+    pub fn get_routes(&mut self) {
+        if let Some(hex) = self.houses.iter().next() {
+            let res = dijkstra(&self.graph, self.hexes[hex].node_index.into(), None, |_| 1);
+
+            let reached: Vec<_> = self
+                .houses
+                .iter()
+                .filter(|h| *h != hex)
+                .filter(|h| res.contains_key(&self.hexes[*h].node_index.into()))
+                .collect();
+
+            info!("{reached:?} houses reached from {hex:?}");
+
+            // if all_reachable {
+            //     // todo: use A* to get paths
+            //     info!("{all_reachable} houses reached");
+            // } else {
+            //     info!("All houses not reached yet");
+            // }
+
+            // astar
+            // None
+        }
     }
 }
-
-#[derive(Clone, Debug, Default, Deref, DerefMut)]
-pub struct PlacedHex(Option<HashSet<Hex>>);
 
 #[derive(Clone, Debug)]
 pub struct MapHex {
     pub entity: Entity,
-    pub placed: Option<PlacedHex>,
+    pub occupied: bool,
+    node_index: NodeIndex,
 }
 
 impl MapHex {
-    pub fn new(entity: Entity) -> Self {
+    pub fn new(entity: Entity, graph: &mut MapGraph) -> Self {
         Self {
             entity,
-            placed: None,
+            node_index: graph.add_node(()).index() as u32,
+            occupied: false,
         }
+    }
+
+    pub fn occupied(entity: Entity, graph: &mut MapGraph) -> Self {
+        let mut hex = Self::new(entity, graph);
+        hex.occupied = true;
+
+        hex
     }
 }
 
@@ -111,6 +203,7 @@ pub fn setup_grid(
     let mesh = hexagonal_plane(&layout);
     let mesh_handle = meshes.add(mesh);
 
+    let mut graph = MapGraph::new_undirected();
     let mut hexes: HashMap<Hex, MapHex> = shapes::hexagon(Hex::ZERO, MAP_RADIUS)
         .map(|hex| {
             let pos = layout.hex_to_world_pos(hex);
@@ -148,21 +241,21 @@ pub fn setup_grid(
                         transform: Transform::from_xyz(0., 0., 0.1),
                         ..default()
                     });
-                    // b.spawn(Text2dBundle {
-                    //     text: Text::from_section(
-                    //         format!("{},{}", hex.x, hex.y),
-                    //         TextStyle {
-                    //             font_size: 17.0,
-                    //             color: Color::BLACK,
-                    //             ..default()
-                    //         },
-                    //     ),
-                    //     transform: Transform::from_xyz(0.0, 0.0, 10.0),
-                    //     ..default()
-                    // });
+                    b.spawn(Text2dBundle {
+                        text: Text::from_section(
+                            format!("{},{}", hex.x, hex.y),
+                            TextStyle {
+                                font_size: 17.0,
+                                color: Color::BLACK,
+                                ..default()
+                            },
+                        ),
+                        transform: Transform::from_xyz(0.0, 0.0, 10.0),
+                        ..default()
+                    });
                 })
                 .id();
-            (hex, MapHex::new(entity))
+            (hex, MapHex::new(entity, &mut graph))
         })
         .collect();
 
@@ -185,7 +278,10 @@ pub fn setup_grid(
     for dir in direction_group {
         'wedge: loop {
             for (i, hex) in Hex::ZERO
-                .corner_wedge(((MAP_RADIUS - 2)..=(MAP_RADIUS + 1)).rev(), *dir)
+                .corner_wedge(
+                    ((MAP_RADIUS - 2.min(MAP_RADIUS))..=(MAP_RADIUS + 1)).rev(),
+                    *dir,
+                )
                 .enumerate()
             {
                 if house_hexes.contains(&hex) || wedge_indices.contains(&i) {
@@ -211,11 +307,8 @@ pub fn setup_grid(
 
                     hexes
                         .entry(hex)
-                        .and_modify(|d| d.placed = Some(PlacedHex::default()))
-                        .or_insert_with(|| MapHex {
-                            entity,
-                            placed: Some(PlacedHex::default()),
-                        });
+                        .and_modify(|h| h.occupied = true)
+                        .or_insert_with(|| MapHex::occupied(entity, &mut graph));
                     house_hexes.insert(hex);
                     wedge_indices.insert(i);
 
@@ -225,11 +318,19 @@ pub fn setup_grid(
         }
     }
 
-    cmd.insert_resource(WorldLayout(layout));
-    cmd.insert_resource(WorldMap {
+    let mut world_map = WorldMap {
+        houses: house_hexes.iter().map(|h| *h).collect(),
+        hex_nodes: hexes
+            .iter()
+            .map(|(h, map_hex)| (map_hex.node_index, *h))
+            .collect(),
         hexes,
-        houses: house_hexes.iter().map(|h| (*h, None)).collect(),
-    });
+        graph,
+        edge_nodes: HashMap::new(),
+    };
+
+    cmd.insert_resource(WorldLayout(layout));
+    cmd.insert_resource(world_map);
 }
 
 /// Compute a bevy mesh from the layout
