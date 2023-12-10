@@ -2,10 +2,11 @@
 
 ## Scoring
 
-- [ ] check if houses are connected
-- [ ] respawn grid on completion
-- [ ] score completed grid
-- [ ] allow resetting the board
+- [ ] add score UI
+- [ ] add score on completion
+- [ ] add time UI
+- [ ] tick time
+- [ ] show final score on time over
 - [ ] remove time when resetting board
 
 ## Feedback
@@ -50,6 +51,13 @@
 ## Story
 
 ???
+
+## Graph
+
+- [x] check if houses are connected
+- [x] respawn grid on completion
+- [x] score completed grid
+- [x] allow resetting the boards
 
 ## Basic loop
 
