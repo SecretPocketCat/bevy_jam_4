@@ -24,9 +24,9 @@ impl Plugin for ScorePlugin {
             .add_event::<UpdateTimerEv>()
             .add_systems(
                 OnEnter(GameState::Game),
-                (setup_ui, restart_timer, restart_level),
+                (setup_ui, restart_timer, restart_level, restart_score),
             )
-            .add_systems(OnEnter(GameState::GameOver), (restart_level))
+            .add_systems(OnEnter(GameState::GameOver), (restart_level,))
             .add_systems(
                 Update,
                 (
@@ -147,11 +147,15 @@ fn update_score(
 }
 
 fn restart_timer(mut cmd: Commands) {
-    cmd.insert_resource(GameTimer(Timer::from_seconds(120., TimerMode::Once)));
+    cmd.insert_resource(GameTimer(Timer::from_seconds(150., TimerMode::Once)));
 }
 
 fn restart_level(mut cmd: Commands) {
     cmd.insert_resource(Level::default());
+}
+
+fn restart_score(mut cmd: Commands) {
+    cmd.insert_resource(Score::default());
 }
 
 fn tick_timer(
