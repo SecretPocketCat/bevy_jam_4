@@ -6,7 +6,7 @@ use crate::{
     map::{EdgeConnection, WorldMap},
     piece::Piece,
     reset::RegisteredSystems,
-    score::UpdateScoreEv,
+    score::{UpdateScoreEv, UpdateTimerEv},
     GameState,
 };
 use bevy::{ecs::system::SystemId, prelude::*};
@@ -49,6 +49,11 @@ fn on_map_completed(
     cmd.spawn(DelayedEvent::new_ms(
         300,
         UpdateScoreEv(completed_map.routes.len() as i32 * 10),
+    ));
+
+    cmd.spawn(DelayedEvent::new_ms(
+        300,
+        UpdateTimerEv(completed_map.routes.len() as f32 * 20.),
     ));
 
     let hex_stagger_ms = 80;

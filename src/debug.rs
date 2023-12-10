@@ -1,4 +1,7 @@
-use crate::{input::GameAction, loading::MainCam, reset::RegisteredSystems, GameState};
+use crate::{
+    ecs::DelayedEvent, input::GameAction, loading::MainCam, reset::RegisteredSystems,
+    score::UpdateTimerEv, GameState,
+};
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_editor_pls::EditorPlugin;
 use bevy_trauma_shake::TraumaCommands;
@@ -35,10 +38,11 @@ fn handle_input(
     mut cmd: Commands,
     input: Res<ActionState<DebugAction>>,
     systems: Res<RegisteredSystems>,
+    mut ev_w: EventWriter<UpdateTimerEv>,
 ) {
     if input.just_pressed(DebugAction::Reset) {
         cmd.run_system(systems.reset);
-
         cmd.add_trauma(0.7);
+        ev_w.send(UpdateTimerEv(-5.));
     }
 }

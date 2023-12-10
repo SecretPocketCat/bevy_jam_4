@@ -10,7 +10,7 @@ use bevy::{ecs::system::SystemId, prelude::*};
 use bevy_trauma_shake::{Shake, TraumaCommands};
 use bevy_tweening::{Animator, EaseFunction};
 use hexx::Hex;
-use std::time::Duration;
+use std::{ops::Add, time::Duration};
 
 pub struct ScorePlugin;
 impl Plugin for ScorePlugin {
@@ -18,13 +18,14 @@ impl Plugin for ScorePlugin {
         app.init_resource::<Score>()
             .init_resource::<Level>()
             .add_event::<UpdateScoreEv>()
+            .add_event::<UpdateTimerEv>()
             .add_systems(OnEnter(GameState::Playing), (setup_ui, restart_timer))
             .add_systems(
                 Update,
                 (
                     update_score,
                     update_score_text,
-                    update_timer.run_if(resource_exists::<GameTimer>()),
+                    (update_timer, tick_timer).run_if(resource_exists::<GameTimer>()),
                     update_level.run_if(resource_added::<CompletedMap>()),
                 )
                     .distributive_run_if(in_state(GameState::Playing)),
@@ -49,6 +50,9 @@ pub struct UpdateScoreEv(pub i32);
 
 #[derive(Debug, Resource, Deref, DerefMut)]
 pub struct GameTimer(Timer);
+
+#[derive(Debug, Resource, Default, Event)]
+pub struct UpdateTimerEv(pub f32);
 
 fn setup_ui(mut cmd: Commands) {
     cmd.spawn(NodeBundle {
@@ -137,12 +141,16 @@ fn restart_timer(mut cmd: Commands) {
     cmd.insert_resource(GameTimer(Timer::from_seconds(90., TimerMode::Once)));
 }
 
-fn update_timer(
+fn tick_timer(
     mut cmd: Commands,
     mut timer: ResMut<GameTimer>,
     time: Res<Time>,
     mut text_q: Query<&mut Text, With<TimerText>>,
 ) {
+    if timer.finished() {
+        return;
+    }
+
     timer.tick(time.delta());
 
     if let Ok(mut text) = text_q.get_single_mut() {
@@ -153,6 +161,35 @@ fn update_timer(
         cmd.add_trauma(0.8);
 
         // todo: stop & transition to score state
+    }
+}
+
+fn update_timer(
+    mut cmd: Commands,
+    mut ev_r: EventReader<UpdateTimerEv>,
+    mut score: ResMut<GameTimer>,
+    text_q: Query<Entity, With<TimerText>>,
+) {
+    for ev in ev_r.read() {
+        let duration = Duration::from_secs_f32(score.remaining_secs().add(ev.0).max(0.1));
+        score.0.set_duration(duration);
+
+        if let Ok(e) = text_q.get_single() {
+            cmd.entity(e).insert(Animator::new(
+                get_scale_tween(
+                    None,
+                    (Vec2::ONE * 1.5).extend(1.),
+                    250,
+                    EaseFunction::BackOut,
+                )
+                .then(get_scale_tween(
+                    None,
+                    Vec3::ONE,
+                    200,
+                    EaseFunction::QuadraticOut,
+                )),
+            ));
+        }
     }
 }
 

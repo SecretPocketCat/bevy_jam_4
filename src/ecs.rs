@@ -2,14 +2,18 @@ use std::time::Duration;
 
 use bevy::{ecs::system::SystemId, prelude::*};
 
-use crate::score::UpdateScoreEv;
+use crate::score::{UpdateScoreEv, UpdateTimerEv};
 
 pub struct EcsPlugin;
 impl Plugin for EcsPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (run_delayed_systems, send_delayed_events::<UpdateScoreEv>),
+            (
+                run_delayed_systems,
+                send_delayed_events::<UpdateScoreEv>,
+                send_delayed_events::<UpdateTimerEv>,
+            ),
         );
     }
 }
