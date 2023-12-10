@@ -63,7 +63,7 @@ fn on_map_completed(
                     delay_tween(
                         get_scale_tween(
                             None,
-                            (Vec2::ONE * 1.5).extend(1.),
+                            (Vec2::ONE * 1.4).extend(1.),
                             route_hex_in_ms,
                             EaseFunction::BackOut,
                         ),
