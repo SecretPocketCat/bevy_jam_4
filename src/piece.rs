@@ -100,6 +100,9 @@ pub struct PieceHexData {
 #[derive(Component, Deref, DerefMut)]
 struct InitialPosition(Vec3);
 
+#[derive(Component)]
+struct Dragged(Drag);
+
 pub struct PiecePlugin;
 impl Plugin for PiecePlugin {
     fn build(&self, app: &mut App) {
@@ -109,6 +112,7 @@ impl Plugin for PiecePlugin {
             .add_systems(
                 Update,
                 (
+                    dragged,
                     spawn_pieces,
                     drag_piece,
                     drag_piece_end.after(spawn_pieces),
@@ -274,17 +278,30 @@ pub fn get_opposite_side_index(side: usize) -> usize {
     get_side_index((side + 3) as i8)
 }
 
+fn dragged(mut cmd: Commands, mut ev_r: EventReader<Pointer<Drag>>) {
+    for ev in ev_r.read() {
+        cmd.entity(ev.target).insert(Dragged(ev.event.clone()));
+    }
+}
+
 fn drag_piece(
     mut cmd: Commands,
     mut ev_r: EventReader<Pointer<Drag>>,
+    rotated_q: Query<(Entity, &Dragged), With<Cooldown<Rotating>>>,
     target_q: Query<(&Parent, &Transform), Without<Piece>>,
     mut piece_q: Query<(&mut Transform, &InitialPosition, &mut Piece)>,
     map: Res<WorldMap>,
     map_layout: Res<WorldLayout>,
     cursor_pos: Res<CursorPosition>,
 ) {
-    for ev in ev_r.read() {
-        if let Ok((parent, target_t)) = target_q.get(ev.target) {
+    let mut to_process: Vec<_> = ev_r
+        .read()
+        .map(|ev| (ev.target, ev.event.clone()))
+        .collect();
+    to_process.extend(rotated_q.iter().map(|(e, dragged)| (e, dragged.0.clone())));
+
+    for (target, drag) in to_process {
+        if let Ok((parent, target_t)) = target_q.get(target) {
             if let Ok((mut piece_t, initial_pos, mut piece)) = piece_q.get_mut(parent.get()) {
                 let target_hex =
                     map_layout.world_pos_to_hex(cursor_pos.0 - target_t.translation.truncate());
@@ -312,8 +329,8 @@ fn drag_piece(
                     ));
                 } else {
                     piece.target_hex.take();
-                    piece_t.translation.x = initial_pos.x + ev.distance.x;
-                    piece_t.translation.y = initial_pos.y - ev.distance.y;
+                    piece_t.translation.x = initial_pos.x + drag.distance.x;
+                    piece_t.translation.y = initial_pos.y - drag.distance.y;
                 }
             }
         }
@@ -473,8 +490,8 @@ fn rotate_piece(
                             }
                         }
 
-                        cmd.entity(piece_hex_data.entity)
-                            .insert(Animator::new(Tracks::new([
+                        cmd.entity(piece_hex_data.entity).insert((
+                            Animator::new(Tracks::new([
                                 get_translation_tween(
                                     None,
                                     map_layout.hex_to_world_pos(rotated_hex).extend(0.),
@@ -487,17 +504,16 @@ fn rotate_piece(
                                     ),
                                     300,
                                 ),
-                            ])));
+                            ])),
+                            Cooldown::<Rotating>::new(300),
+                        ));
 
                         (rotated_hex, piece_hex_data)
                     })
                     .collect();
 
-                cmd.entity(e.piece_e).insert(Cooldown::<Rotating>::new(300));
-
-                // todo: do this properly
-                // this will at least prevent placing the piece, but rotating without movement will mean the piece will stay in the same place
                 piece.target_hex.take();
+                cmd.entity(e.piece_e).insert(Cooldown::<Rotating>::new(300));
             }
         }
     }
