@@ -332,7 +332,7 @@ fn drag_piece_end(
                     // place hexes
                     map.place_piece(hex, &piece.hexes);
 
-                    if let Some(completed_routes) = map.get_routes() {
+                    if let Some((completed_routes, dead_ends)) = map.get_completed_routes() {
                         for route in completed_routes {
                             // todo: raise score
 

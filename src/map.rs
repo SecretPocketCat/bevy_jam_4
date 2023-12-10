@@ -27,7 +27,7 @@ use strum::EnumIter;
 
 use self::edge_connection::EdgeConnection;
 
-pub const MAP_RADIUS: u32 = 1;
+pub const MAP_RADIUS: u32 = 2;
 pub const HEX_SIZE: f32 = 46.;
 pub const HEX_SIZE_INNER_MULT: f32 = 0.925;
 pub const HEX_SIZE_INNER: f32 = HEX_SIZE * HEX_SIZE_INNER_MULT;
@@ -67,6 +67,10 @@ mod edge_connection {
 
         pub fn first(&self) -> Hex {
             self.0
+        }
+
+        pub fn second(&self) -> Hex {
+            self.1
         }
     }
 }
@@ -139,7 +143,7 @@ impl WorldMap {
         }
     }
 
-    pub fn get_routes(&mut self) -> Option<Vec<Vec<Hex>>> {
+    pub fn get_completed_routes(&mut self) -> Option<(Vec<Vec<Hex>>, Vec<EdgeConnection>)> {
         if let Some(hex) = self.houses.iter().next() {
             let start_node = self.hexes[hex].node_index;
             let res = dijkstra(&self.graph, start_node.into(), None, |_| 1);
@@ -151,10 +155,9 @@ impl WorldMap {
                 .all(|h| res.contains_key(&self.hexes[h].node_index.into()));
 
             if all_reachable {
-                // todo: use A* to get paths && djikstra results to get dead-ends
                 info!("reached all houses reached from {hex:?}");
 
-                Some(
+                Some((
                     other_houses
                         .iter()
                         .map(|house| {
@@ -183,7 +186,14 @@ impl WorldMap {
                                 .collect()
                         })
                         .collect(),
-                )
+                    self.graph
+                        .node_indices()
+                        .filter(|n| self.graph.neighbors_undirected(*n).count() == 1)
+                        .map(|n| self.hex_edge_nodes.get(&(n.index() as u32)))
+                        .flatten()
+                        .cloned()
+                        .collect(),
+                ))
             } else {
                 None
             }
