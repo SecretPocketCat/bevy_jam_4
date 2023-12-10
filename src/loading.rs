@@ -1,7 +1,6 @@
 use crate::GameState;
 use bevy::{prelude::*, transform::commands};
 use bevy_asset_loader::prelude::*;
-use bevy_editor_pls::prelude::*;
 
 #[derive(Component)]
 pub struct MainCam;
@@ -22,8 +21,7 @@ impl Plugin for LoadingPlugin {
         ))
         // .add_collection_to_loading_state::<_, AudioAssets>(GameState::Loading)
         .add_collection_to_loading_state::<_, TextureAssets>(GameState::Loading)
-        .add_systems(OnEnter(GameState::Loading), spawn_cam)
-        .add_plugins(EditorPlugin::default());
+        .add_systems(OnEnter(GameState::Loading), spawn_cam);
     }
 }
 

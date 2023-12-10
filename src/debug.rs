@@ -1,7 +1,7 @@
-use bevy::{prelude::*, window::PrimaryWindow};
-use leafwing_input_manager::prelude::*;
-
 use crate::{input::GameAction, loading::MainCam, reset::RegisteredSystems, GameState};
+use bevy::{prelude::*, window::PrimaryWindow};
+use bevy_editor_pls::EditorPlugin;
+use leafwing_input_manager::prelude::*;
 
 #[derive(Component)]
 pub struct PersistReset;
@@ -23,6 +23,10 @@ impl Plugin for DebugPlugin {
                     .build(),
             )
             .add_systems(Update, handle_input);
+
+        if cfg!(target_arch = "wasm32") {
+            app.add_plugins(EditorPlugin::default());
+        }
     }
 }
 
