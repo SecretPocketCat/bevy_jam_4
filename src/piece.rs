@@ -47,12 +47,12 @@ impl Default for HexBlueprints {
     fn default() -> Self {
         // these go clockwise from the top-right edge (pointy hexes)
         let blueprints: Vec<_> = [
-            ([false, true, true, false, false, false], 7),
-            ([false, true, false, true, false, false], 7),
-            ([false, true, false, false, true, false], 7),
-            ([false, true, true, true, false, false], 3),
-            ([false, true, false, true, true, false], 3),
-            ([false, true, true, false, true, false], 3),
+            ([false, true, true, false, false, false], 3),
+            ([false, true, false, true, false, false], 8),
+            ([false, true, false, false, true, false], 10),
+            ([false, true, true, true, false, false], 2),
+            ([false, true, false, true, true, false], 4),
+            ([false, true, true, false, true, false], 4),
             ([false, true, false, true, false, true], 3),
             ([false, true, true, true, true, false], 1),
             ([false, true, true, false, true, true], 1),
@@ -75,7 +75,7 @@ impl Default for HexBlueprints {
             hexes: blueprints,
             weighted_index,
             // todo: tweak when triples work properly
-            size_weighted_index: WeightedIndex::new([1, 2 /*3*/]).unwrap(),
+            size_weighted_index: WeightedIndex::new([3, 4 /*3*/]).unwrap(),
             // size_weighted_index: WeightedIndex::new([2, 3, 1]).unwrap(),
         }
     }
