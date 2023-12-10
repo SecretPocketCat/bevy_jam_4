@@ -81,10 +81,7 @@ impl WorldMap {
         *self
             .edge_nodes
             .entry(EdgeConnection::new(a, b))
-            .or_insert_with(|| {
-                info!("adding a new edge node {:?}", EdgeConnection::new(a, b));
-                self.graph.add_node(()).index() as u32
-            })
+            .or_insert_with(|| self.graph.add_node(()).index() as u32)
     }
 
     fn add_hex_graph_edges(&mut self, hex: &Hex, edge_connections: &[bool; 6]) {
@@ -103,7 +100,6 @@ impl WorldMap {
 
             // add connections to adjacent houses
             if self.houses.contains(&target_hex) {
-                info!("Adding a house edge: {target_hex:?}, side: {side}");
                 self.graph.add_edge(
                     edge_node.into(),
                     self.hexes[&target_hex].node_index.into(),
