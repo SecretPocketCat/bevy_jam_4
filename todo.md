@@ -55,7 +55,7 @@
 
 ## Fix
 
-- [ ] ressetting while dragging a piece causes a crash
+- [x] resetting while dragging a piece causes a crash
 - [x] initial piece rotation breaks some hexes?
 - [x] focus over sprites sometimes lost
 - [ ] fix board animation/tweens
