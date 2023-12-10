@@ -1,7 +1,17 @@
 # Todo
 
+## Visual overhaul
+
+- [ ] palette
+- [ ] hexes
+- [ ] BG
+- [ ] font
+- [ ] UI text
+- [ ] btns
+
 ## Feedback
 
+- [ ] add reset btn!
 - [x] fix/refresh snapping on rotation
 - [x] set higher z for dragged piece
 - [ ] highligh selected & dragged piece
