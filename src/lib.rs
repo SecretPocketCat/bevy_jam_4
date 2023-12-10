@@ -21,6 +21,7 @@ use crate::menu::MenuPlugin;
 use crate::piece::PiecePlugin;
 use animation::AnimationPlugin;
 use bevy::prelude::*;
+use bevy_trauma_shake::TraumaPlugin;
 use cooldown::CooldownPlugin;
 use ecs::EcsPlugin;
 use input::InputPlugin;
@@ -61,6 +62,7 @@ impl Plugin for GamePlugin {
             MapCompletionPlugin,
             ScorePlugin,
             EcsPlugin,
+            TraumaPlugin,
         ));
 
         if cfg!(debug_assertions) {

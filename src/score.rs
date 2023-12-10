@@ -7,6 +7,7 @@ use crate::{
     GameState,
 };
 use bevy::{ecs::system::SystemId, prelude::*};
+use bevy_trauma_shake::{Shake, TraumaCommands};
 use bevy_tweening::{Animator, EaseFunction};
 use hexx::Hex;
 use std::time::Duration;
@@ -100,11 +101,35 @@ fn update_score_text(score: Res<Score>, mut text_q: Query<&mut Text, With<ScoreT
     }
 }
 
-fn update_score(mut ev_r: EventReader<UpdateScoreEv>, mut score: ResMut<Score>) {
+fn update_score(
+    mut cmd: Commands,
+    mut ev_r: EventReader<UpdateScoreEv>,
+    mut score: ResMut<Score>,
+    text_q: Query<Entity, With<ScoreText>>,
+) {
     for ev in ev_r.read() {
         score.0 = score.0.saturating_add_signed(ev.0);
 
-        // todo: tween text & shake
+        if let Ok(e) = text_q.get_single() {
+            cmd.entity(e).insert(Animator::new(
+                get_scale_tween(
+                    None,
+                    (Vec2::ONE * 1.5).extend(1.),
+                    250,
+                    EaseFunction::BackOut,
+                )
+                .then(get_scale_tween(
+                    None,
+                    Vec3::ONE,
+                    200,
+                    EaseFunction::QuadraticOut,
+                )),
+            ));
+
+            if ev.0 < 0 {
+                cmd.add_trauma(0.3);
+            }
+        }
     }
 }
 
@@ -113,6 +138,7 @@ fn restart_timer(mut cmd: Commands) {
 }
 
 fn update_timer(
+    mut cmd: Commands,
     mut timer: ResMut<GameTimer>,
     time: Res<Time>,
     mut text_q: Query<&mut Text, With<TimerText>>,
@@ -124,7 +150,9 @@ fn update_timer(
     }
 
     if timer.just_finished() {
-        // stop & transition to score state
+        cmd.add_trauma(0.8);
+
+        // todo: stop & transition to score state
     }
 }
 

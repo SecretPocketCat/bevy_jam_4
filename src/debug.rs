@@ -1,6 +1,7 @@
 use crate::{input::GameAction, loading::MainCam, reset::RegisteredSystems, GameState};
 use bevy::{prelude::*, window::PrimaryWindow};
 use bevy_editor_pls::EditorPlugin;
+use bevy_trauma_shake::TraumaCommands;
 use leafwing_input_manager::prelude::*;
 
 #[derive(Component)]
@@ -37,5 +38,7 @@ fn handle_input(
 ) {
     if input.just_pressed(DebugAction::Reset) {
         cmd.run_system(systems.reset);
+
+        cmd.add_trauma(0.7);
     }
 }

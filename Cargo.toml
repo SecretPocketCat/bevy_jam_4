@@ -41,4 +41,5 @@ bevy_mod_picking = { version = "0.17.0", default_features = false, features = [
 ] }
 strum = { version = "0.25", features = ["derive"] }
 bevy_editor_pls = "0.6.0"
+bevy_trauma_shake = "0.1.0"
 # bevy_aseprite = "0.12.0"

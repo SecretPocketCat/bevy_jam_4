@@ -723,6 +723,7 @@ dependencies = [
  "bevy_asset_loader",
  "bevy_editor_pls",
  "bevy_mod_picking",
+ "bevy_trauma_shake",
  "bevy_tweening",
  "hexx",
  "leafwing-input-manager",
@@ -1255,6 +1256,16 @@ dependencies = [
  "bevy_reflect",
  "serde",
  "thiserror",
+]
+
+[[package]]
+name = "bevy_trauma_shake"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d134420d578c26efd7ad5cbfd4684db4979228f0c07d888eba4e014719aacaa"
+dependencies = [
+ "bevy",
+ "noisy_bevy",
 ]
 
 [[package]]
@@ -2843,6 +2854,15 @@ name = "nohash-hasher"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2bf50223579dc7cdcfb3bfcacf7069ff68243f8c363f62ffa99cf000a6b9c451"
+
+[[package]]
+name = "noisy_bevy"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4d7bb7dbeeaf8d67dc867a550f69348f93e4d6858c751f500fcfc38e858f7b5"
+dependencies = [
+ "bevy",
+]
 
 [[package]]
 name = "nom"

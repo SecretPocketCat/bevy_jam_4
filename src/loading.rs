@@ -1,6 +1,7 @@
 use crate::GameState;
 use bevy::{prelude::*, transform::commands};
 use bevy_asset_loader::prelude::*;
+use bevy_trauma_shake::Shake;
 
 #[derive(Component)]
 pub struct MainCam;
@@ -53,5 +54,5 @@ pub struct TextureAssets {
 }
 
 fn spawn_cam(mut cmd: Commands) {
-    cmd.spawn((Camera2dBundle::default(), MainCam));
+    cmd.spawn((Camera2dBundle::default(), MainCam, Shake::default()));
 }
