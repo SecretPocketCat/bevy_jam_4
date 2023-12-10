@@ -48,12 +48,12 @@ fn on_map_completed(
     // add routes score
     cmd.spawn(DelayedEvent::new_ms(
         300,
-        UpdateScoreEv(completed_map.routes.len() as i32 * 10),
+        UpdateScoreEv(map.house_count() as i32 * 10),
     ));
 
     cmd.spawn(DelayedEvent::new_ms(
         300,
-        UpdateTimerEv(completed_map.routes.len() as f32 * 20.),
+        UpdateTimerEv(map.house_count() as f32 * 15.),
     ));
 
     let hex_stagger_ms = 80;

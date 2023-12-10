@@ -90,6 +90,10 @@ pub struct WorldMap {
 }
 
 impl WorldMap {
+    pub fn house_count(&self) -> usize {
+        self.houses.len()
+    }
+
     fn get_or_add_edge_connection(&mut self, a: Hex, b: Hex) -> u32 {
         let edge_conn = EdgeConnection::new(a, b);
 
