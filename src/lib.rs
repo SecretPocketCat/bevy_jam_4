@@ -1,18 +1,37 @@
 #![allow(clippy::type_complexity)]
+#![allow(unused_imports)]
 
-mod actions;
+mod animation;
+mod cooldown;
+mod debug;
+mod ecs;
+mod game_over;
+mod input;
 mod loading;
+mod map;
+mod map_completion;
+mod math;
 mod menu;
-mod player;
+mod mouse;
+mod piece;
+mod reset;
+mod score;
 
-use crate::actions::ActionsPlugin;
 use crate::loading::LoadingPlugin;
 use crate::menu::MenuPlugin;
-use crate::player::PlayerPlugin;
-
-use bevy::app::App;
-#[cfg(debug_assertions)]
+use crate::piece::PiecePlugin;
+use animation::AnimationPlugin;
 use bevy::prelude::*;
+use bevy_trauma_shake::TraumaPlugin;
+use cooldown::CooldownPlugin;
+use ecs::EcsPlugin;
+use game_over::GameOverPlugin;
+use input::InputPlugin;
+use map::MapPlugin;
+use map_completion::MapCompletionPlugin;
+use mouse::CursorPlugin;
+use reset::ResetPlugin;
+use score::ScorePlugin;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -23,9 +42,10 @@ enum GameState {
     #[default]
     Loading,
     // During this State the actual game logic is executed
-    Playing,
+    Game,
     // Here the menu is drawn and waiting for player interaction
     Menu,
+    GameOver,
 }
 
 pub struct GamePlugin;
@@ -35,13 +55,22 @@ impl Plugin for GamePlugin {
         app.add_state::<GameState>().add_plugins((
             LoadingPlugin,
             MenuPlugin,
-            ActionsPlugin,
-            PlayerPlugin,
+            MapPlugin,
+            PiecePlugin,
+            InputPlugin,
+            CursorPlugin,
+            AnimationPlugin,
+            CooldownPlugin,
+            ResetPlugin,
+            MapCompletionPlugin,
+            ScorePlugin,
+            EcsPlugin,
+            TraumaPlugin,
+            GameOverPlugin,
         ));
 
-        #[cfg(debug_assertions)]
-        {
-            // app.add_plugins((FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin::default()));
+        if cfg!(debug_assertions) {
+            app.add_plugins(debug::DebugPlugin);
         }
     }
 }

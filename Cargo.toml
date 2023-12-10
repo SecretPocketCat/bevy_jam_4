@@ -9,8 +9,8 @@ exclude = ["dist", "build", "assets", "credits"]
 [profile.dev.package."*"]
 opt-level = 3
 
-[profile.dev]
-opt-level = 1
+# [profile.dev]
+# opt-level = 1
 
 [profile.release]
 lto = true
@@ -26,13 +26,20 @@ dev = ["bevy/dynamic_linking"]
 
 [dependencies]
 bevy = { version = "0.12.1" }
-bevy_asset_loader = { version = "0.18" }
-rand = { version = "0.8.3" }
+bevy_asset_loader = { version = "0.18", features = ["2d"] }
+rand = "0.8.3"
 webbrowser = { version = "0.8", features = ["hardened"] }
-
-# keep the following in sync with Bevy's dependencies
-winit = { version = "0.28.7", default-features = false }
-image = { version = "0.24", default-features = false }
-
-[build-dependencies]
-embed-resource = "1.4"
+hexx = "0.12.0"
+leafwing-input-manager = "0.11.2"
+bevy_tweening = { git = "https://github.com/SecretPocketCat/bevy_tweening" }
+paste = "1.0.14"
+bevy_mod_picking = { version = "0.17.0", default_features = false, features = [
+    "backend_raycast",
+    # "backend_bevy_ui",
+    # "backend_sprite",
+    # "debug",
+] }
+strum = { version = "0.25", features = ["derive"] }
+bevy_editor_pls = "0.6.0"
+bevy_trauma_shake = "0.1.0"
+# bevy_aseprite = "0.12.0"
