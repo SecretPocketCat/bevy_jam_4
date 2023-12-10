@@ -403,10 +403,16 @@ pub fn spawn_grid(
     }
 
     // mid island
-    if map_radius >= 3 {
+    let island_range = match (map_radius, lvl.0) {
+        (0..=2, _) => None,
+        (_, 0..=2) => None,
+        (3..=5, _) => Some(0..=1),
+        _ => Some(0..=2),
+    };
+
+    if let Some(island_range) = island_range {
         let mut skip_count = 0;
         let mut tween_offset_i = 0;
-        let island_range = if map_radius < 5 { 0..=1 } else { 0..=2 };
         for island_hex in Hex::ZERO.spiral_range(island_range) {
             if skip_count > 0 {
                 skip_count -= 1;
