@@ -2,7 +2,7 @@
 
 ## Visual overhaul
 
-- [ ] palette
+- [x] palette
 - [ ] hexes
 - [ ] BG
 - [ ] font
