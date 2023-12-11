@@ -6,7 +6,7 @@ use crate::{
     },
     cooldown::{Cooldown, Rotating},
     input::GameAction,
-    loading::TextureAssets,
+    loading::{MainCam, TextureAssets},
     map::{WorldLayout, WorldMap, HEX_SIZE, HEX_SIZE_INNER, HEX_WIDTH},
     map_completion::CompletedMap,
     math::{asymptotic_smoothing, asymptotic_smoothing_with_delta_time},
@@ -298,12 +298,15 @@ fn drag_piece(
     map: Res<WorldMap>,
     map_layout: Res<WorldLayout>,
     cursor_pos: Res<CursorPosition>,
+    cam_q: Query<&OrthographicProjection, With<MainCam>>,
 ) {
     let mut to_process: Vec<_> = ev_r
         .read()
         .map(|ev| (ev.target, ev.event.clone()))
         .collect();
     to_process.extend(rotated_q.iter().map(|(e, dragged)| (e, dragged.0.clone())));
+
+    let projection = cam_q.single();
 
     for (target, drag) in to_process {
         if let Ok((parent, target_t)) = target_q.get(target) {
@@ -334,8 +337,8 @@ fn drag_piece(
                     ));
                 } else {
                     piece.target_hex.take();
-                    piece_t.translation.x = initial_pos.x + drag.distance.x;
-                    piece_t.translation.y = initial_pos.y - drag.distance.y;
+                    piece_t.translation.x = initial_pos.x + drag.distance.x * projection.scale;
+                    piece_t.translation.y = initial_pos.y - drag.distance.y * projection.scale;
                 }
             }
         }
