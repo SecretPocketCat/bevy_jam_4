@@ -1,22 +1,25 @@
 # Todo
 
+## Last minute
+- [ ] bee hex
+- [ ] tutorial screen - just text + play btn
+
 ## Visual overhaul
 
 - [x] palette
 - [x] hexes
 - [x] BG
-- [ ] bee hex
 - [x] font
 - [x] UI text
 - [x] btns
 
 ## Feedback
 
-- [ ] add reset btn!
+- [x] add reset btn!
 - [x] fix/refresh snapping on rotation
 - [x] set higher z for dragged piece
 - [ ] highligh selected & dragged piece
-- [ ] remaining pieces UI
+- [x] remaining pieces UI
 
 ## Debug
 

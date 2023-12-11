@@ -34,6 +34,7 @@ impl Plugin for ScorePlugin {
                 (
                     update_score,
                     update_score_text,
+                    update_pieces_text,
                     (update_timer, tick_timer).run_if(resource_exists::<GameTimer>()),
                     update_level.run_if(resource_added::<CompletedMap>()),
                 )
@@ -47,6 +48,9 @@ struct ScoreText;
 
 #[derive(Component)]
 struct TimerText;
+
+#[derive(Component)]
+struct PiecesText;
 
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
 pub struct Score(pub u32);
@@ -166,6 +170,51 @@ fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>, systems: Res<RegisteredSy
         .with_children(|b| {
             b.spawn((
                 TextBundle::from_section(
+                    "REMAINING PIECES",
+                    TextStyle {
+                        font_size: 25.0,
+                        color: Color::rgb_u8(61, 51, 51),
+                        font: fonts.main.clone(),
+                        ..default()
+                    },
+                )
+                .with_style(Style {
+                    margin: UiRect::top(Val::Px(40.)),
+                    ..default()
+                }),
+                Resettable,
+            ));
+
+            b.spawn((
+                TextBundle::from_section(
+                    "2",
+                    TextStyle {
+                        font_size: 60.0,
+                        color: Color::rgb_u8(61, 51, 51),
+                        font: fonts.main.clone(),
+                        ..default()
+                    },
+                )
+                .with_style(Style {
+                    margin: UiRect::horizontal(Val::Px(40.)),
+                    ..default()
+                }),
+                Resettable,
+                PiecesText,
+            ));
+        });
+
+        b.spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|b| {
+            b.spawn((
+                TextBundle::from_section(
                     "TIME",
                     TextStyle {
                         font_size: 40.0,
@@ -239,6 +288,34 @@ fn update_score(
             if ev.0 < 0 {
                 cmd.add_trauma(0.3);
             }
+        }
+    }
+}
+
+fn update_pieces_text(
+    mut cmd: Commands,
+    pieces_q: Query<(), With<Piece>>,
+    mut text_q: Query<(Entity, &mut Text), With<PiecesText>>,
+) {
+    if let Ok((e, mut text)) = text_q.get_single_mut() {
+        let count = if pieces_q.iter().len() == 2 { 1 } else { 2 };
+        let txt = format!("{}", count);
+        if text.sections[0].value != txt {
+            text.sections[0].value = txt;
+            cmd.entity(e).try_insert(Animator::new(
+                get_scale_tween(
+                    None,
+                    (Vec2::ONE * 1.5).extend(1.),
+                    250,
+                    EaseFunction::BackOut,
+                )
+                .then(get_scale_tween(
+                    None,
+                    Vec3::ONE,
+                    200,
+                    EaseFunction::QuadraticOut,
+                )),
+            ));
         }
     }
 }
