@@ -1,6 +1,6 @@
 use crate::{
     animation::{delay_tween, get_scale_anim, get_scale_tween},
-    loading::TextureAssets,
+    loading::{MainCam, TextureAssets},
     map_completion::CompletedMap,
     piece::{get_opposite_side_index, PieceHexData},
     reset::ResettableGrid,
@@ -32,7 +32,7 @@ use strum::EnumIter;
 
 pub use self::edge_connection::EdgeConnection;
 
-pub const HEX_SIZE: f32 = 46.;
+pub const HEX_SIZE: f32 = 50.;
 pub const HEX_SIZE_INNER_MULT: f32 = 0.925;
 pub const HEX_SIZE_INNER: f32 = HEX_SIZE * HEX_SIZE_INNER_MULT;
 
@@ -82,6 +82,7 @@ mod edge_connection {
 #[derive(Debug, Resource)]
 pub struct WorldMap {
     pub hexes: HashMap<Hex, MapHex>,
+    pub map_radius: u32,
     houses: HashSet<Hex>,
     graph: MapGraph,
     hex_nodes: HashMap<NodeIndex, Hex>,
@@ -238,6 +239,7 @@ pub fn spawn_grid(
     mut cmd: Commands,
     sprites: Res<TextureAssets>,
     completed_map: Option<Res<CompletedMap>>,
+    mut cam_q: Query<(&mut OrthographicProjection, &mut Transform), With<MainCam>>,
     lvl: Res<Level>,
 ) {
     if completed_map.is_some() {
@@ -312,7 +314,7 @@ pub fn spawn_grid(
             cmd.spawn((
                 SpriteSheetBundle {
                     transform: Transform {
-                        translation: pos.extend(0.),
+                        translation: pos.extend(0.1),
                         scale: Vec2::ZERO.extend(1.),
                         ..default()
                     },
@@ -420,7 +422,7 @@ pub fn spawn_grid(
                         cmd.spawn((
                             SpriteSheetBundle {
                                 transform: Transform {
-                                    translation: layout.hex_to_world_pos(*neighbour).extend(1.),
+                                    translation: layout.hex_to_world_pos(*neighbour).extend(0.1),
                                     scale: Vec2::ZERO.extend(1.),
                                     ..default()
                                 },
@@ -491,6 +493,17 @@ pub fn spawn_grid(
         }
     }
 
+    // cam
+    let (mut projection, mut cam_t) = cam_q.single_mut();
+    projection.scale = match map_radius {
+        0..=2 => 1.,
+        3 => 1.35,
+        4 => 1.55,
+        _ => 1.75,
+    };
+
+    cam_t.translation.x = map_radius as f32 * HEX_WIDTH;
+
     let world_map = WorldMap {
         houses: house_hexes.iter().map(|h| *h).collect(),
         hex_nodes: hexes
@@ -501,6 +514,7 @@ pub fn spawn_grid(
         graph,
         edge_connection_nodes: HashMap::new(),
         hex_edge_nodes: HashMap::new(),
+        map_radius,
     };
 
     cmd.insert_resource(WorldLayout(layout));

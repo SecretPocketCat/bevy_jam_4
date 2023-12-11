@@ -132,6 +132,7 @@ impl Plugin for PiecePlugin {
 fn spawn_pieces(
     mut cmd: Commands,
     map_layout: Res<WorldLayout>,
+    map: Res<WorldMap>,
     blueprints: Res<HexBlueprints>,
     piece_q: Query<&Piece>,
     placed_piece_q: Query<(), With<PlacedPiece>>,
@@ -141,8 +142,11 @@ fn spawn_pieces(
     if piece_q.iter().len() < 1 {
         let mut rng = thread_rng();
         let piece_tween_delay = if placed_piece_q.is_empty() { 950 } else { 200 };
+        let piece_x = map_layout
+            .hex_to_world_pos(Hex::new(map.map_radius as i32 + 4, 0))
+            .x;
 
-        for (piece_i, y) in [-250., 0., 250.].iter().enumerate() {
+        for (piece_i, y) in [-220., 0., 220.].iter().enumerate() {
             let size = blueprints.size_weighted_index.sample(&mut rng) + 1;
             let mut hexes = HashMap::with_capacity(3);
 
@@ -196,7 +200,7 @@ fn spawn_pieces(
                     }
                 }
 
-                let pos = map_layout.hex_to_world_pos(hex).extend(0.);
+                let pos = map_layout.hex_to_world_pos(hex).extend(0.1);
 
                 let entity = cmd
                     .spawn((
@@ -248,8 +252,7 @@ fn spawn_pieces(
 
             let children: Vec<_> = hexes.values().map(|d| d.entity).collect();
 
-            // todo: raise z to prevent z-fighting
-            let pos = Vec3::new(*y, 400., 1.);
+            let pos = Vec3::new(piece_x, *y, 1.);
             cmd.spawn(SpatialBundle::from_transform(
                 Transform::from_translation(pos).with_scale(Vec2::ZERO.extend(1.)),
             ))

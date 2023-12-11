@@ -1,7 +1,9 @@
 use crate::{
     animation::{delay_tween, get_scale_anim, get_scale_tween, DespawnOnTweenCompleted},
+    loading::FontAssets,
     map::{EdgeConnection, WorldMap},
     map_completion::CompletedMap,
+    menu::{ButtonColors, RunSystem},
     piece::Piece,
     reset::{RegisteredSystems, Resettable},
     GameState,
@@ -32,6 +34,7 @@ impl Plugin for ScorePlugin {
                 (
                     update_score,
                     update_score_text,
+                    update_pieces_text,
                     (update_timer, tick_timer).run_if(resource_exists::<GameTimer>()),
                     update_level.run_if(resource_added::<CompletedMap>()),
                 )
@@ -46,6 +49,9 @@ struct ScoreText;
 #[derive(Component)]
 struct TimerText;
 
+#[derive(Component)]
+struct PiecesText;
+
 #[derive(Debug, Resource, Default, Deref, DerefMut)]
 pub struct Score(pub u32);
 
@@ -56,12 +62,12 @@ pub struct Level(pub u32);
 pub struct UpdateScoreEv(pub i32);
 
 #[derive(Debug, Resource, Deref, DerefMut)]
-pub struct GameTimer(Timer);
+pub struct GameTimer(pub Timer);
 
 #[derive(Debug, Resource, Default, Event)]
 pub struct UpdateTimerEv(pub f32);
 
-fn setup_ui(mut cmd: Commands) {
+fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>, systems: Res<RegisteredSystems>) {
     cmd.spawn(NodeBundle {
         style: Style {
             width: Val::Percent(100.0),
@@ -72,37 +78,177 @@ fn setup_ui(mut cmd: Commands) {
         ..default()
     })
     .with_children(|b| {
-        b.spawn((
-            TextBundle::from_section(
-                "0",
-                TextStyle {
-                    font_size: 60.0,
-                    ..default()
-                },
-            )
-            .with_style(Style {
-                margin: UiRect::all(Val::Px(20.)),
+        b.spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
                 ..default()
-            }),
-            ScoreText,
-            Resettable,
-        ));
+            },
+            ..default()
+        })
+        .with_children(|b| {
+            b.spawn((
+                TextBundle::from_section(
+                    "SCORE",
+                    TextStyle {
+                        font_size: 40.0,
+                        color: Color::rgb_u8(61, 51, 51),
+                        font: fonts.main.clone(),
+                        ..default()
+                    },
+                )
+                .with_style(Style {
+                    margin: UiRect::top(Val::Px(40.)),
+                    ..default()
+                }),
+                Resettable,
+            ));
 
-        b.spawn((
-            TextBundle::from_section(
-                "",
-                TextStyle {
-                    font_size: 60.0,
+            b.spawn((
+                TextBundle::from_section(
+                    "0",
+                    TextStyle {
+                        font_size: 60.0,
+                        color: Color::rgb_u8(61, 51, 51),
+                        font: fonts.main.clone(),
+                        ..default()
+                    },
+                )
+                .with_style(Style {
+                    // width: Val::Px(60.),
+                    margin: UiRect::horizontal(Val::Px(40.)),
                     ..default()
+                }),
+                ScoreText,
+                Resettable,
+            ));
+
+            let button_colors = ButtonColors::default();
+            b.spawn((
+                ButtonBundle {
+                    style: Style {
+                        width: Val::Px(140.0),
+                        height: Val::Px(50.0),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        margin: UiRect::new(Val::Px(30.), Val::DEFAULT, Val::DEFAULT, Val::Px(30.)),
+                        ..Default::default()
+                    },
+                    background_color: button_colors.normal.into(),
+                    transform: Transform::from_scale(Vec2::ZERO.extend(1.)),
+                    ..Default::default()
                 },
-            )
-            .with_style(Style {
-                margin: UiRect::all(Val::Px(20.)),
+                button_colors,
+                RunSystem(systems.skip_board),
+                Animator::new(delay_tween(
+                    get_scale_tween(None, Vec3::ONE, 350, EaseFunction::BackOut),
+                    1000,
+                )),
+                Resettable,
+            ))
+            .with_children(|parent| {
+                parent.spawn(TextBundle::from_section(
+                    "SKIP",
+                    TextStyle {
+                        font_size: 40.0,
+                        color: Color::rgb_u8(61, 51, 51),
+                        font: fonts.main.clone(),
+                        ..default()
+                    },
+                ));
+            });
+        });
+
+        b.spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
                 ..default()
-            }),
-            TimerText,
-            Resettable,
-        ));
+            },
+            ..default()
+        })
+        .with_children(|b| {
+            b.spawn((
+                TextBundle::from_section(
+                    "REMAINING PIECES",
+                    TextStyle {
+                        font_size: 25.0,
+                        color: Color::rgb_u8(61, 51, 51),
+                        font: fonts.main.clone(),
+                        ..default()
+                    },
+                )
+                .with_style(Style {
+                    margin: UiRect::top(Val::Px(40.)),
+                    ..default()
+                }),
+                Resettable,
+            ));
+
+            b.spawn((
+                TextBundle::from_section(
+                    "2",
+                    TextStyle {
+                        font_size: 60.0,
+                        color: Color::rgb_u8(61, 51, 51),
+                        font: fonts.main.clone(),
+                        ..default()
+                    },
+                )
+                .with_style(Style {
+                    margin: UiRect::horizontal(Val::Px(40.)),
+                    ..default()
+                }),
+                Resettable,
+                PiecesText,
+            ));
+        });
+
+        b.spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            ..default()
+        })
+        .with_children(|b| {
+            b.spawn((
+                TextBundle::from_section(
+                    "TIME",
+                    TextStyle {
+                        font_size: 40.0,
+                        color: Color::rgb_u8(61, 51, 51),
+                        font: fonts.main.clone(),
+                        ..default()
+                    },
+                )
+                .with_style(Style {
+                    margin: UiRect::top(Val::Px(40.)),
+                    ..default()
+                }),
+                Resettable,
+            ));
+
+            b.spawn((
+                TextBundle::from_section(
+                    "",
+                    TextStyle {
+                        font_size: 60.0,
+                        color: Color::rgb_u8(61, 51, 51),
+                        font: fonts.main.clone(),
+                        ..default()
+                    },
+                )
+                .with_style(Style {
+                    width: Val::Px(70.),
+                    margin: UiRect::horizontal(Val::Px(40.)),
+                    ..default()
+                }),
+                TimerText,
+                Resettable,
+            ));
+        });
     });
 }
 
@@ -142,6 +288,34 @@ fn update_score(
             if ev.0 < 0 {
                 cmd.add_trauma(0.3);
             }
+        }
+    }
+}
+
+fn update_pieces_text(
+    mut cmd: Commands,
+    pieces_q: Query<(), With<Piece>>,
+    mut text_q: Query<(Entity, &mut Text), With<PiecesText>>,
+) {
+    if let Ok((e, mut text)) = text_q.get_single_mut() {
+        let count = if pieces_q.iter().len() == 2 { 1 } else { 2 };
+        let txt = format!("{}", count);
+        if text.sections[0].value != txt {
+            text.sections[0].value = txt;
+            cmd.entity(e).try_insert(Animator::new(
+                get_scale_tween(
+                    None,
+                    (Vec2::ONE * 1.5).extend(1.),
+                    250,
+                    EaseFunction::BackOut,
+                )
+                .then(get_scale_tween(
+                    None,
+                    Vec3::ONE,
+                    200,
+                    EaseFunction::QuadraticOut,
+                )),
+            ));
         }
     }
 }
