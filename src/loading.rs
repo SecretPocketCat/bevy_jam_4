@@ -23,7 +23,7 @@ impl Plugin for LoadingPlugin {
             if cfg!(debug_assertions) {
                 GameState::Game
             } else {
-                GameState::Menu
+                GameState::Tutorial
             },
         ))
         // .add_collection_to_loading_state::<_, AudioAssets>(GameState::Loading)

@@ -77,11 +77,12 @@ fn setup_ui(mut cmd: Commands) {
                 "0",
                 TextStyle {
                     font_size: 60.0,
+                    color: Color::rgb_u8(61, 51, 51),
                     ..default()
                 },
             )
             .with_style(Style {
-                margin: UiRect::all(Val::Px(20.)),
+                margin: UiRect::all(Val::Px(40.)),
                 ..default()
             }),
             ScoreText,
@@ -93,11 +94,12 @@ fn setup_ui(mut cmd: Commands) {
                 "",
                 TextStyle {
                     font_size: 60.0,
+                    color: Color::rgb_u8(61, 51, 51),
                     ..default()
                 },
             )
             .with_style(Style {
-                margin: UiRect::all(Val::Px(20.)),
+                margin: UiRect::all(Val::Px(40.)),
                 ..default()
             }),
             TimerText,
