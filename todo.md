@@ -3,8 +3,9 @@
 ## Visual overhaul
 
 - [x] palette
-- [ ] hexes
+- [x] hexes
 - [ ] BG
+- [ ] bee hex
 - [ ] font
 - [ ] UI text
 - [ ] btns
