@@ -3,6 +3,7 @@ use crate::{
     loading::FontAssets,
     map::{EdgeConnection, WorldMap},
     map_completion::CompletedMap,
+    menu::{ButtonColors, RunSystem},
     piece::Piece,
     reset::{RegisteredSystems, Resettable},
     GameState,
@@ -62,7 +63,7 @@ pub struct GameTimer(pub Timer);
 #[derive(Debug, Resource, Default, Event)]
 pub struct UpdateTimerEv(pub f32);
 
-fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>) {
+fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>, systems: Res<RegisteredSystems>) {
     cmd.spawn(NodeBundle {
         style: Style {
             width: Val::Percent(100.0),
@@ -117,6 +118,41 @@ fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>) {
                 ScoreText,
                 Resettable,
             ));
+
+            let button_colors = ButtonColors::default();
+            b.spawn((
+                ButtonBundle {
+                    style: Style {
+                        width: Val::Px(140.0),
+                        height: Val::Px(50.0),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        margin: UiRect::new(Val::Px(30.), Val::DEFAULT, Val::DEFAULT, Val::Px(30.)),
+                        ..Default::default()
+                    },
+                    background_color: button_colors.normal.into(),
+                    transform: Transform::from_scale(Vec2::ZERO.extend(1.)),
+                    ..Default::default()
+                },
+                button_colors,
+                RunSystem(systems.skip_board),
+                Animator::new(delay_tween(
+                    get_scale_tween(None, Vec3::ONE, 350, EaseFunction::BackOut),
+                    1000,
+                )),
+                Resettable,
+            ))
+            .with_children(|parent| {
+                parent.spawn(TextBundle::from_section(
+                    "SKIP",
+                    TextStyle {
+                        font_size: 40.0,
+                        color: Color::rgb_u8(61, 51, 51),
+                        font: fonts.main.clone(),
+                        ..default()
+                    },
+                ));
+            });
         });
 
         b.spawn(NodeBundle {

@@ -2,6 +2,7 @@ use crate::animation::{delay_tween, get_scale_tween};
 use crate::loading::TextureAssets;
 use crate::reset::Resettable;
 use crate::GameState;
+use bevy::ecs::system::SystemId;
 use bevy::prelude::*;
 use bevy_tweening::{Animator, EaseFunction};
 
@@ -14,9 +15,9 @@ impl Plugin for MenuPlugin {
 }
 
 #[derive(Component)]
-struct ButtonColors {
-    normal: Color,
-    hovered: Color,
+pub struct ButtonColors {
+    pub normal: Color,
+    pub hovered: Color,
 }
 
 impl Default for ButtonColors {
@@ -61,7 +62,7 @@ pub fn spawn_play_btn(
         ))
         .with_children(|parent| {
             parent.spawn(TextBundle::from_section(
-                "Play",
+                "PLAY",
                 TextStyle {
                     font_size: 40.0,
                     color: Color::rgb_u8(61, 51, 51),
@@ -77,9 +78,13 @@ pub fn spawn_play_btn(
 struct ChangeState(GameState);
 
 #[derive(Component)]
+pub struct RunSystem(pub SystemId);
+
+#[derive(Component)]
 struct OpenLink(&'static str);
 
 fn click_play_button(
+    mut cmd: Commands,
     mut next_state: ResMut<NextState<GameState>>,
     mut interaction_query: Query<
         (
@@ -87,16 +92,22 @@ fn click_play_button(
             &mut BackgroundColor,
             &ButtonColors,
             Option<&ChangeState>,
+            Option<&RunSystem>,
             Option<&OpenLink>,
         ),
         (Changed<Interaction>, With<Button>),
     >,
 ) {
-    for (interaction, mut color, button_colors, change_state, open_link) in &mut interaction_query {
+    for (interaction, mut color, button_colors, change_state, run_system, open_link) in
+        &mut interaction_query
+    {
         match *interaction {
             Interaction::Pressed => {
                 if let Some(state) = change_state {
                     next_state.set(state.0.clone());
+                }
+                if let Some(system) = run_system {
+                    cmd.run_system(system.0);
                 } else if let Some(link) = open_link {
                     if let Err(error) = webbrowser::open(link.0) {
                         warn!("Failed to open link {error:?}");

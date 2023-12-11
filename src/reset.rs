@@ -1,4 +1,5 @@
 use bevy::{ecs::system::SystemId, prelude::*, window::PrimaryWindow};
+use bevy_trauma_shake::TraumaCommands;
 use bevy_tweening::{Animator, EaseFunction};
 use leafwing_input_manager::prelude::*;
 
@@ -7,6 +8,7 @@ use crate::{
     input::GameAction,
     loading::MainCam,
     map::spawn_grid,
+    score::UpdateTimerEv,
     GameState,
 };
 
@@ -17,6 +19,7 @@ pub struct ResettableGrid;
 pub struct RegisteredSystems {
     pub reset: SystemId,
     pub spawn_board: SystemId,
+    pub skip_board: SystemId,
 }
 
 #[derive(Component)]
@@ -28,10 +31,21 @@ impl Plugin for ResetPlugin {
         let systems = RegisteredSystems {
             reset: app.world.register_system(reset_board),
             spawn_board: app.world.register_system(spawn_grid),
+            skip_board: app.world.register_system(skip_board),
         };
 
         app.insert_resource(systems);
     }
+}
+
+fn skip_board(
+    mut cmd: Commands,
+    systems: Res<RegisteredSystems>,
+    mut ev_w: EventWriter<UpdateTimerEv>,
+) {
+    cmd.run_system(systems.reset);
+    cmd.add_trauma(0.7);
+    ev_w.send(UpdateTimerEv(-5.));
 }
 
 fn reset_board(
