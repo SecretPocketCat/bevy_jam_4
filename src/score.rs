@@ -73,41 +73,97 @@ fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>) {
         ..default()
     })
     .with_children(|b| {
-        b.spawn((
-            TextBundle::from_section(
-                "0",
-                TextStyle {
-                    font_size: 60.0,
-                    color: Color::rgb_u8(61, 51, 51),
-                    font: fonts.main.clone(),
-                    ..default()
-                },
-            )
-            .with_style(Style {
-                margin: UiRect::all(Val::Px(40.)),
+        b.spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
                 ..default()
-            }),
-            ScoreText,
-            Resettable,
-        ));
+            },
+            ..default()
+        })
+        .with_children(|b| {
+            b.spawn((
+                TextBundle::from_section(
+                    "SCORE",
+                    TextStyle {
+                        font_size: 40.0,
+                        color: Color::rgb_u8(61, 51, 51),
+                        font: fonts.main.clone(),
+                        ..default()
+                    },
+                )
+                .with_style(Style {
+                    margin: UiRect::top(Val::Px(40.)),
+                    ..default()
+                }),
+                Resettable,
+            ));
 
-        b.spawn((
-            TextBundle::from_section(
-                "",
-                TextStyle {
-                    font_size: 60.0,
-                    color: Color::rgb_u8(61, 51, 51),
-                    font: fonts.main.clone(),
+            b.spawn((
+                TextBundle::from_section(
+                    "0",
+                    TextStyle {
+                        font_size: 60.0,
+                        color: Color::rgb_u8(61, 51, 51),
+                        font: fonts.main.clone(),
+                        ..default()
+                    },
+                )
+                .with_style(Style {
+                    // width: Val::Px(60.),
+                    margin: UiRect::horizontal(Val::Px(40.)),
                     ..default()
-                },
-            )
-            .with_style(Style {
-                margin: UiRect::all(Val::Px(40.)),
+                }),
+                ScoreText,
+                Resettable,
+            ));
+        });
+
+        b.spawn(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
                 ..default()
-            }),
-            TimerText,
-            Resettable,
-        ));
+            },
+            ..default()
+        })
+        .with_children(|b| {
+            b.spawn((
+                TextBundle::from_section(
+                    "TIME",
+                    TextStyle {
+                        font_size: 40.0,
+                        color: Color::rgb_u8(61, 51, 51),
+                        font: fonts.main.clone(),
+                        ..default()
+                    },
+                )
+                .with_style(Style {
+                    margin: UiRect::top(Val::Px(40.)),
+                    ..default()
+                }),
+                Resettable,
+            ));
+
+            b.spawn((
+                TextBundle::from_section(
+                    "",
+                    TextStyle {
+                        font_size: 60.0,
+                        color: Color::rgb_u8(61, 51, 51),
+                        font: fonts.main.clone(),
+                        ..default()
+                    },
+                )
+                .with_style(Style {
+                    width: Val::Px(70.),
+                    margin: UiRect::horizontal(Val::Px(40.)),
+                    ..default()
+                }),
+                TimerText,
+                Resettable,
+            ));
+        });
     });
 }
 
