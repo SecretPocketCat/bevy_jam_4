@@ -1,6 +1,6 @@
 use crate::{
     animation::{delay_tween, get_scale_anim, get_scale_tween},
-    loading::TextureAssets,
+    loading::{MainCam, TextureAssets},
     map_completion::CompletedMap,
     piece::{get_opposite_side_index, PieceHexData},
     reset::ResettableGrid,
@@ -32,7 +32,7 @@ use strum::EnumIter;
 
 pub use self::edge_connection::EdgeConnection;
 
-pub const HEX_SIZE: f32 = 46.;
+pub const HEX_SIZE: f32 = 50.;
 pub const HEX_SIZE_INNER_MULT: f32 = 0.925;
 pub const HEX_SIZE_INNER: f32 = HEX_SIZE * HEX_SIZE_INNER_MULT;
 
@@ -238,6 +238,7 @@ pub fn spawn_grid(
     mut cmd: Commands,
     sprites: Res<TextureAssets>,
     completed_map: Option<Res<CompletedMap>>,
+    mut cam_q: Query<&mut OrthographicProjection, With<MainCam>>,
     lvl: Res<Level>,
 ) {
     if completed_map.is_some() {
@@ -266,6 +267,14 @@ pub fn spawn_grid(
         2..=4 => 3,
         5..=7 => 4,
         _ => 5,
+    };
+
+    let mut cam = cam_q.single_mut();
+    cam.scale = match map_radius {
+        0..=2 => 1.,
+        3 => 1.35,
+        4 => 1.55,
+        _ => 1.75,
     };
 
     let direction_group = match lvl.0 {
