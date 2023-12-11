@@ -200,7 +200,7 @@ fn spawn_pieces(
                     }
                 }
 
-                let pos = map_layout.hex_to_world_pos(hex).extend(0.);
+                let pos = map_layout.hex_to_world_pos(hex).extend(0.1);
 
                 let entity = cmd
                     .spawn((

@@ -56,7 +56,7 @@ pub struct Level(pub u32);
 pub struct UpdateScoreEv(pub i32);
 
 #[derive(Debug, Resource, Deref, DerefMut)]
-pub struct GameTimer(Timer);
+pub struct GameTimer(pub Timer);
 
 #[derive(Debug, Resource, Default, Event)]
 pub struct UpdateTimerEv(pub f32);

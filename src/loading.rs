@@ -1,4 +1,6 @@
-use crate::GameState;
+use std::ops::Mul;
+
+use crate::{score::GameTimer, GameState};
 use bevy::{prelude::*, transform::commands};
 use bevy_asset_loader::prelude::*;
 use bevy_trauma_shake::Shake;
@@ -22,7 +24,8 @@ impl Plugin for LoadingPlugin {
         ))
         // .add_collection_to_loading_state::<_, AudioAssets>(GameState::Loading)
         .add_collection_to_loading_state::<_, TextureAssets>(GameState::Loading)
-        .add_systems(OnEnter(GameState::Loading), spawn_cam);
+        .add_systems(OnEnter(GameState::Loading), (spawn_cam, spawn_bg))
+        .add_systems(Update, (move_bg));
     }
 }
 
@@ -48,4 +51,42 @@ pub struct TextureAssets {
 
 fn spawn_cam(mut cmd: Commands) {
     cmd.spawn((Camera2dBundle::default(), MainCam, Shake::default()));
+}
+
+#[derive(Component)]
+struct Bg(f32);
+
+fn spawn_bg(mut cmd: Commands) {
+    cmd.spawn((SpriteBundle {
+        sprite: Sprite {
+            color: Color::rgb_u8(253, 209, 121),
+            custom_size: Some(Vec2::new(6000.0, 6000.0)),
+            ..default()
+        },
+        ..default()
+    },));
+
+    for i in 0..40 {
+        let x = -4000. + i as f32 * 200.;
+        cmd.spawn((
+            SpriteBundle {
+                sprite: Sprite {
+                    color: Color::rgb_u8(254, 225, 184),
+                    custom_size: Some(Vec2::new(100.0, 6000.0)),
+                    ..default()
+                },
+                transform: Transform::from_translation(Vec3::new(x, 0., 0.))
+                    .with_rotation(Quat::from_rotation_z(-30f32.to_radians())),
+                ..default()
+            },
+            Bg(x),
+        ));
+    }
+}
+
+fn move_bg(time: Res<Time>, mut bg_q: Query<(&mut Transform, &Bg)>, timer: Option<Res<GameTimer>>) {
+    let speed = 30. + timer.map_or(0., |t| t.0.percent() * 500.);
+    for (mut t, bg) in bg_q.iter_mut() {
+        t.translation.x = time.elapsed_seconds().mul(speed).rem_euclid(1000.) + bg.0;
+    }
 }

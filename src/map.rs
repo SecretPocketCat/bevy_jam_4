@@ -314,7 +314,7 @@ pub fn spawn_grid(
             cmd.spawn((
                 SpriteSheetBundle {
                     transform: Transform {
-                        translation: pos.extend(0.),
+                        translation: pos.extend(0.1),
                         scale: Vec2::ZERO.extend(1.),
                         ..default()
                     },
@@ -422,7 +422,7 @@ pub fn spawn_grid(
                         cmd.spawn((
                             SpriteSheetBundle {
                                 transform: Transform {
-                                    translation: layout.hex_to_world_pos(*neighbour).extend(0.),
+                                    translation: layout.hex_to_world_pos(*neighbour).extend(0.1),
                                     scale: Vec2::ZERO.extend(1.),
                                     ..default()
                                 },
