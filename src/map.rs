@@ -420,7 +420,7 @@ pub fn spawn_grid(
                         cmd.spawn((
                             SpriteSheetBundle {
                                 transform: Transform {
-                                    translation: layout.hex_to_world_pos(*neighbour).extend(1.),
+                                    translation: layout.hex_to_world_pos(*neighbour).extend(0.),
                                     scale: Vec2::ZERO.extend(1.),
                                     ..default()
                                 },
