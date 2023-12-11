@@ -4,11 +4,11 @@
 
 - [x] palette
 - [x] hexes
-- [ ] BG
+- [x] BG
 - [ ] bee hex
-- [ ] font
-- [ ] UI text
-- [ ] btns
+- [x] font
+- [x] UI text
+- [x] btns
 
 ## Feedback
 

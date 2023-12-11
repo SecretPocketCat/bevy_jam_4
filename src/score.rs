@@ -1,5 +1,6 @@
 use crate::{
     animation::{delay_tween, get_scale_anim, get_scale_tween, DespawnOnTweenCompleted},
+    loading::FontAssets,
     map::{EdgeConnection, WorldMap},
     map_completion::CompletedMap,
     piece::Piece,
@@ -61,7 +62,7 @@ pub struct GameTimer(pub Timer);
 #[derive(Debug, Resource, Default, Event)]
 pub struct UpdateTimerEv(pub f32);
 
-fn setup_ui(mut cmd: Commands) {
+fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>) {
     cmd.spawn(NodeBundle {
         style: Style {
             width: Val::Percent(100.0),
@@ -78,6 +79,7 @@ fn setup_ui(mut cmd: Commands) {
                 TextStyle {
                     font_size: 60.0,
                     color: Color::rgb_u8(61, 51, 51),
+                    font: fonts.main.clone(),
                     ..default()
                 },
             )
@@ -95,6 +97,7 @@ fn setup_ui(mut cmd: Commands) {
                 TextStyle {
                     font_size: 60.0,
                     color: Color::rgb_u8(61, 51, 51),
+                    font: fonts.main.clone(),
                     ..default()
                 },
             )

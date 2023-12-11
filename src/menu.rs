@@ -31,7 +31,11 @@ impl Default for ButtonColors {
 #[derive(Component)]
 struct Menu;
 
-pub fn spawn_play_btn(children: &mut ChildBuilder, tween_delay_ms: u64) -> Entity {
+pub fn spawn_play_btn(
+    children: &mut ChildBuilder,
+    tween_delay_ms: u64,
+    font: Handle<Font>,
+) -> Entity {
     let button_colors = ButtonColors::default();
     children
         .spawn((
@@ -61,6 +65,7 @@ pub fn spawn_play_btn(children: &mut ChildBuilder, tween_delay_ms: u64) -> Entit
                 TextStyle {
                     font_size: 40.0,
                     color: Color::rgb_u8(61, 51, 51),
+                    font,
                     ..default()
                 },
             ));

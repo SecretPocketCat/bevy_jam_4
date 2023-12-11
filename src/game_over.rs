@@ -1,5 +1,6 @@
 use crate::{
     animation::{delay_tween, get_scale_tween},
+    loading::FontAssets,
     menu::spawn_play_btn,
     reset::{tween_reset, Resettable},
     score::Score,
@@ -17,7 +18,7 @@ impl Plugin for GameOverPlugin {
     }
 }
 
-fn setup_ui(mut cmd: Commands, score: Res<Score>) {
+fn setup_ui(mut cmd: Commands, score: Res<Score>, fonts: Res<FontAssets>) {
     cmd.spawn((NodeBundle {
         style: Style {
             flex_direction: FlexDirection::Column,
@@ -36,6 +37,8 @@ fn setup_ui(mut cmd: Commands, score: Res<Score>) {
                         "GAME OVER\n\n",
                         TextStyle {
                             font_size: 50.,
+                            font: fonts.main.clone(),
+                            color: Color::rgb_u8(61, 51, 51),
                             ..default()
                         },
                     )
@@ -60,6 +63,8 @@ fn setup_ui(mut cmd: Commands, score: Res<Score>) {
                         format!("SCORE: {}", score.0),
                         TextStyle {
                             font_size: 90.,
+                            font: fonts.main.clone(),
+                            color: Color::rgb_u8(61, 51, 51),
                             ..default()
                         },
                     )
@@ -78,6 +83,6 @@ fn setup_ui(mut cmd: Commands, score: Res<Score>) {
                 Resettable,
             ));
 
-            spawn_play_btn(b, 1200);
+            spawn_play_btn(b, 1200, fonts.main.clone());
         });
 }

@@ -28,6 +28,7 @@ impl Plugin for LoadingPlugin {
         ))
         // .add_collection_to_loading_state::<_, AudioAssets>(GameState::Loading)
         .add_collection_to_loading_state::<_, TextureAssets>(GameState::Loading)
+        .add_collection_to_loading_state::<_, FontAssets>(GameState::Loading)
         .add_systems(OnEnter(GameState::Loading), (spawn_cam, spawn_bg))
         .add_systems(Update, (move_bg));
     }
@@ -41,6 +42,12 @@ impl Plugin for LoadingPlugin {
 //     #[asset(path = "audio/flying.ogg")]
 //     pub flying: Handle<AudioSource>,
 // }
+
+#[derive(AssetCollection, Resource)]
+pub struct FontAssets {
+    #[asset(path = "fonts/OdibeeSans-Regular.ttf")]
+    pub main: Handle<Font>,
+}
 
 #[derive(AssetCollection, Resource)]
 pub struct TextureAssets {
