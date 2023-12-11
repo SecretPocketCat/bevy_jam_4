@@ -1,6 +1,10 @@
 use std::ops::Mul;
 
-use crate::{score::GameTimer, GameState};
+use crate::{
+    math::{asymptotic_smoothing, asymptotic_smoothing_with_delta_time, inverse_lerp_clamped},
+    score::GameTimer,
+    GameState,
+};
 use bevy::{prelude::*, transform::commands};
 use bevy_asset_loader::prelude::*;
 use bevy_trauma_shake::Shake;
@@ -84,9 +88,26 @@ fn spawn_bg(mut cmd: Commands) {
     }
 }
 
-fn move_bg(time: Res<Time>, mut bg_q: Query<(&mut Transform, &Bg)>, timer: Option<Res<GameTimer>>) {
-    let speed = 30. + timer.map_or(0., |t| t.0.percent() * 500.);
+fn move_bg(
+    time: Res<Time>,
+    mut bg_q: Query<(&mut Transform, &Bg)>,
+    timer: Option<Res<GameTimer>>,
+    mut speed_t: Local<f32>,
+) {
+    *speed_t = asymptotic_smoothing_with_delta_time(
+        *speed_t,
+        30. + timer.map_or(0., |t| {
+            if t.finished() {
+                0.
+            } else {
+                t.0.percent() * 300.
+            }
+        }),
+        0.09,
+        time.delta_seconds(),
+    );
+
     for (mut t, bg) in bg_q.iter_mut() {
-        t.translation.x = time.elapsed_seconds().mul(speed).rem_euclid(1000.) + bg.0;
+        t.translation.x = time.elapsed_seconds().mul(*speed_t).rem_euclid(1000.) + bg.0;
     }
 }
