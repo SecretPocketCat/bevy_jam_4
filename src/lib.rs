@@ -16,6 +16,7 @@ mod mouse;
 mod piece;
 mod reset;
 mod score;
+mod tutorial;
 
 use crate::loading::LoadingPlugin;
 use crate::menu::MenuPlugin;
@@ -32,6 +33,7 @@ use map_completion::MapCompletionPlugin;
 use mouse::CursorPlugin;
 use reset::ResetPlugin;
 use score::ScorePlugin;
+use tutorial::TutorialPlugin;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -64,6 +66,7 @@ impl Plugin for GamePlugin {
             EcsPlugin,
             TraumaPlugin,
             GameOverPlugin,
+            TutorialPlugin,
         ));
 
         if cfg!(debug_assertions) {

@@ -21,7 +21,8 @@ impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         app.add_loading_state(LoadingState::new(GameState::Loading).continue_to_state(
             if cfg!(debug_assertions) {
-                GameState::Game
+                // GameState::Game
+                GameState::Tutorial
             } else {
                 GameState::Tutorial
             },
