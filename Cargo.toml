@@ -6,6 +6,9 @@ authors = ["SPC"]
 edition = "2021"
 exclude = ["dist", "build", "assets", "credits"]
 
+[lints.clippy]
+pedantic = "warn"
+
 [profile.dev.package."*"]
 opt-level = 3
 
