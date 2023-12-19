@@ -3,7 +3,6 @@ use crate::{
     loading::FontAssets,
     menu::spawn_play_btn,
     reset::{tween_reset, Resettable},
-    score::Score,
     GameState,
 };
 use bevy::prelude::*;

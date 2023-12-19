@@ -51,7 +51,7 @@ pub(super) fn spawn_pieces(
 
             for size_i in 0..size {
                 let mut blueprint =
-                    (&blueprints.hexes[blueprints.weighted_index.sample(&mut rng)]).clone();
+                    blueprints.hexes[blueprints.weighted_index.sample(&mut rng)].clone();
 
                 // randomize rotation
                 let rotation_side = (0..6).choose(&mut rng).unwrap();
@@ -73,7 +73,7 @@ pub(super) fn spawn_pieces(
                     }
 
                     if size_i == 1 {
-                        let side = prev.connections.map_or(None, |connected_sides| {
+                        let side = prev.connections.and_then(|connected_sides| {
                             connected_sides
                                 .iter()
                                 .enumerate()
@@ -144,7 +144,7 @@ pub(super) fn spawn_pieces(
                     PieceHexData {
                         entity,
                         side_index: rotation_side as u8,
-                        connections: blueprint.map_or(None, |bp| Some(bp.connected_sides.clone())),
+                        connections: blueprint.map(|bp| bp.connected_sides),
                     },
                 );
             }

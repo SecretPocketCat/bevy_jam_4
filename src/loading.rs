@@ -1,7 +1,7 @@
 use std::ops::Mul;
 
 use crate::{
-    math::{asymptotic_smoothing, asymptotic_smoothing_with_delta_time, inverse_lerp_clamped},
+    math::{asymptotic_smoothing_with_delta_time},
     score::GameTimer,
     GameState,
 };
@@ -30,7 +30,7 @@ impl Plugin for LoadingPlugin {
         .add_collection_to_loading_state::<_, TextureAssets>(GameState::Loading)
         .add_collection_to_loading_state::<_, FontAssets>(GameState::Loading)
         .add_systems(OnEnter(GameState::Loading), (spawn_cam, spawn_bg))
-        .add_systems(Update, (move_bg));
+        .add_systems(Update, move_bg);
     }
 }
 

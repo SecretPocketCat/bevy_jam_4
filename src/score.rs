@@ -1,19 +1,18 @@
 use crate::{
-    animation::{delay_tween, get_scale_anim, get_scale_tween, DespawnOnTweenCompleted},
+    animation::{delay_tween, get_scale_tween},
     loading::FontAssets,
-    map::{EdgeConnection, WorldMap},
     map_completion::CompletedMap,
     menu::{ButtonColors, RunSystem},
     piece::Piece,
     reset::{RegisteredSystems, Resettable},
     GameState,
 };
-use bevy::{ecs::system::SystemId, prelude::*};
-use bevy_trauma_shake::{Shake, TraumaCommands};
+use bevy::{prelude::*};
+use bevy_trauma_shake::{TraumaCommands};
 use bevy_tweening::{Animator, EaseFunction};
-use hexx::Hex;
+
 use std::{
-    ops::{Add, Sub},
+    ops::{Sub},
     time::Duration,
 };
 

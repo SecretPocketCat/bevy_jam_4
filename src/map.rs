@@ -1,16 +1,14 @@
 use crate::{
-    animation::{delay_tween, get_scale_anim, get_scale_tween},
+    animation::{delay_tween, get_scale_tween},
     loading::{MainCam, TextureAssets},
     map_completion::CompletedMap,
-    piece::{get_opposite_side_index, PieceHexData},
+    piece::{PieceHexData},
     reset::ResettableGrid,
     score::Level,
     GameState,
 };
 use bevy::{
     prelude::*,
-    render::{mesh::Indices, render_resource::PrimitiveTopology},
-    sprite::MaterialMesh2dBundle,
     utils::{
         petgraph::{
             adj::NodeIndex,
@@ -20,7 +18,6 @@ use bevy::{
         },
         HashMap, HashSet,
     },
-    window::PrimaryWindow,
 };
 use bevy_tweening::{Animator, EaseFunction};
 use hexx::{shapes, Direction, *};
@@ -28,7 +25,7 @@ use rand::{
     seq::{IteratorRandom, SliceRandom},
     thread_rng, Rng,
 };
-use strum::EnumIter;
+
 
 pub use self::edge_connection::EdgeConnection;
 
@@ -137,13 +134,13 @@ impl WorldMap {
     pub fn place_piece(&mut self, hex: Hex, piece_hexes: &HashMap<Hex, PieceHexData>) {
         let placed_hexes: Vec<_> = piece_hexes
             .iter()
-            .map(|(key, val)| (hex + *key, (val.connections.clone(), val.entity.clone())))
+            .map(|(key, val)| (hex + *key, (val.connections, val.entity)))
             .collect();
 
         // place hexes
         for (hex, (connected_sides, hex_e)) in placed_hexes.iter() {
             if let Some(connected_sides) = connected_sides {
-                self.add_hex_graph_edges(&hex, connected_sides);
+                self.add_hex_graph_edges(hex, connected_sides);
             }
 
             self.hexes.entry(*hex).and_modify(|map_hex| {
@@ -189,8 +186,7 @@ impl WorldMap {
                             info!("Path from {hex:?} to {house:?}: {path:?}");
 
                             path.iter()
-                                .map(|n| self.hex_nodes.get(&(n.index() as u32)))
-                                .flatten()
+                                .filter_map(|n| self.hex_nodes.get(&(n.index() as u32)))
                                 .cloned()
                                 .collect()
                         })
@@ -199,8 +195,7 @@ impl WorldMap {
                         .graph
                         .node_indices()
                         .filter(|n| self.graph.neighbors_undirected(*n).count() == 1)
-                        .map(|n| self.hex_edge_nodes.get(&(n.index() as u32)))
-                        .flatten()
+                        .filter_map(|n| self.hex_edge_nodes.get(&(n.index() as u32)))
                         .cloned()
                         .collect(),
                 })
@@ -271,22 +266,18 @@ pub fn spawn_grid(
     };
 
     let direction_group = match lvl.0 {
-        0..=1 => vec![
-            vec![Direction::Top, Direction::Bottom],
+        0..=1 => [vec![Direction::Top, Direction::Bottom],
             vec![Direction::TopLeft, Direction::BottomRight],
-            vec![Direction::BottomLeft, Direction::TopRight],
-        ]
+            vec![Direction::BottomLeft, Direction::TopRight]]
         .choose(&mut rng)
         .cloned()
         .unwrap(),
-        2..=3 => vec![
-            vec![
+        2..=3 => [vec![
                 Direction::Top,
                 Direction::BottomLeft,
                 Direction::BottomRight,
             ],
-            vec![Direction::Bottom, Direction::TopLeft, Direction::TopRight],
-        ]
+            vec![Direction::Bottom, Direction::TopLeft, Direction::TopRight]]
         .choose(&mut rng)
         .cloned()
         .unwrap(),
@@ -401,7 +392,7 @@ pub fn spawn_grid(
 
                     hexes
                         .entry(hex)
-                        .and_modify(|h| h.placed_hex_e = Some(entity.clone()))
+                        .and_modify(|h| h.placed_hex_e = Some(entity))
                         .or_insert_with(|| MapHex::occupied(entity, &mut graph));
                     house_hexes.insert(hex);
                     wedge_indices.insert(i);
@@ -505,7 +496,7 @@ pub fn spawn_grid(
     cam_t.translation.x = map_radius as f32 * HEX_WIDTH;
 
     let world_map = WorldMap {
-        houses: house_hexes.iter().map(|h| *h).collect(),
+        houses: house_hexes.iter().copied().collect(),
         hex_nodes: hexes
             .iter()
             .map(|(h, map_hex)| (map_hex.node_index, *h))

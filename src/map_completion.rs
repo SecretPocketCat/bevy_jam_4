@@ -9,7 +9,7 @@ use crate::{
     score::{UpdateScoreEv, UpdateTimerEv},
     GameState,
 };
-use bevy::{ecs::system::SystemId, prelude::*};
+use bevy::{prelude::*};
 use bevy_tweening::{Animator, EaseFunction};
 use hexx::Hex;
 
@@ -106,8 +106,7 @@ fn on_map_completed(
         for (i, dead_end) in completed_map.dead_ends.iter().enumerate() {
             for e in [dead_end.first(), dead_end.second()]
                 .iter()
-                .map(|h| map.hexes.get(h))
-                .flatten()
+                .filter_map(|h| map.hexes.get(h))
                 .flat_map(|h| h.placed_hex_e)
             {
                 cmd.entity(e).try_insert(Animator::new(

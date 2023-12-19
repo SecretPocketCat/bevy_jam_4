@@ -12,7 +12,7 @@ impl<T: Send + Sync> Cooldown<T> {
     pub fn new(duration_ms: u64) -> Self {
         Self {
             timer: Timer::new(Duration::from_millis(duration_ms), TimerMode::Once),
-            _phantom: PhantomData::default(),
+            _phantom: PhantomData,
         }
     }
 }

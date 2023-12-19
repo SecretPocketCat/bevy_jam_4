@@ -1,15 +1,12 @@
-use bevy::{ecs::system::SystemId, prelude::*, window::PrimaryWindow};
+use bevy::{ecs::system::SystemId, prelude::*};
 use bevy_trauma_shake::TraumaCommands;
-use bevy_tweening::{Animator, EaseFunction};
-use leafwing_input_manager::prelude::*;
+
+
 
 use crate::{
-    animation::{get_relative_scale_anim, get_scale_tween, DespawnOnTweenCompleted},
-    input::GameAction,
-    loading::MainCam,
+    animation::{get_relative_scale_anim, DespawnOnTweenCompleted},
     map::spawn_grid,
     score::UpdateTimerEv,
-    GameState,
 };
 
 #[derive(Component)]

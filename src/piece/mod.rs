@@ -14,7 +14,7 @@ mod hex;
 mod piece;
 
 pub use hex::PieceHexData;
-pub use piece::{get_opposite_side_index, Piece};
+pub use piece::{Piece};
 
 pub struct PiecePlugin;
 impl Plugin for PiecePlugin {
