@@ -152,7 +152,6 @@ fn spawn_pieces(
                             texture_atlas: sprites.tiles.clone(),
                             ..default()
                         },
-                        // todo: this uses incorrect size
                         Mesh2dHandle::from(
                             meshes.add(shape::RegularPolygon::new(HEX_SIZE, 6).into()),
                         ),
