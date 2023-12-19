@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::ops::{Add, Mul};
 
 pub fn inverse_lerp(a: f32, b: f32, t: f32) -> f32 {

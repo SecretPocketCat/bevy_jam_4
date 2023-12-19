@@ -9,7 +9,7 @@ use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 use bevy_tweening::EaseFunction;
 
-use super::piece::{Piece, PlacedPiece};
+use super::{Piece, PlacedPiece};
 
 #[derive(Component, Deref, DerefMut)]
 pub(super) struct InitialPosition(pub(super) Vec3);

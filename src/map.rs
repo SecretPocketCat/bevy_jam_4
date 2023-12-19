@@ -2,7 +2,7 @@ use crate::{
     animation::{delay_tween, get_scale_tween},
     loading::{MainCam, TextureAssets},
     map_completion::CompletedMap,
-    piece::{PieceHexData},
+    piece::PieceHexData,
     reset::ResettableGrid,
     score::Level,
     GameState,
@@ -13,7 +13,6 @@ use bevy::{
         petgraph::{
             adj::NodeIndex,
             algo::{astar, dijkstra},
-            data::Build,
             graph::UnGraph,
         },
         HashMap, HashSet,
@@ -21,21 +20,14 @@ use bevy::{
 };
 use bevy_tweening::{Animator, EaseFunction};
 use hexx::{shapes, Direction, *};
-use rand::{
-    seq::{IteratorRandom, SliceRandom},
-    thread_rng, Rng,
-};
-
+use rand::{seq::SliceRandom, thread_rng, Rng};
 
 pub use self::edge_connection::EdgeConnection;
 
 pub const HEX_SIZE: f32 = 50.;
-pub const HEX_SIZE_INNER_MULT: f32 = 0.925;
-pub const HEX_SIZE_INNER: f32 = HEX_SIZE * HEX_SIZE_INNER_MULT;
 
 // https://www.redblobgames.com/grids/hexagons/#basics
 pub const HEX_WIDTH: f32 = HEX_SIZE * 1.732_050_8; // sqrt of 3
-pub const HEX_HEIGHT: f32 = HEX_SIZE * 2.;
 
 pub struct MapPlugin;
 impl Plugin for MapPlugin {
@@ -266,18 +258,22 @@ pub fn spawn_grid(
     };
 
     let direction_group = match lvl.0 {
-        0..=1 => [vec![Direction::Top, Direction::Bottom],
+        0..=1 => [
+            vec![Direction::Top, Direction::Bottom],
             vec![Direction::TopLeft, Direction::BottomRight],
-            vec![Direction::BottomLeft, Direction::TopRight]]
+            vec![Direction::BottomLeft, Direction::TopRight],
+        ]
         .choose(&mut rng)
         .cloned()
         .unwrap(),
-        2..=3 => [vec![
+        2..=3 => [
+            vec![
                 Direction::Top,
                 Direction::BottomLeft,
                 Direction::BottomRight,
             ],
-            vec![Direction::Bottom, Direction::TopLeft, Direction::TopRight]]
+            vec![Direction::Bottom, Direction::TopLeft, Direction::TopRight],
+        ]
         .choose(&mut rng)
         .cloned()
         .unwrap(),

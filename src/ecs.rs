@@ -35,10 +35,6 @@ impl<T: Event> DelayedEvent<T> {
             data: Some(data),
         }
     }
-
-    pub fn new_sec(delay_sec: f32, data: T) -> Self {
-        Self::new_ms((delay_sec * 1000.0) as u64, data)
-    }
 }
 
 fn run_delayed_systems(

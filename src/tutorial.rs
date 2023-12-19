@@ -38,7 +38,6 @@ fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>) {
                             font_size: 60.,
                             font: fonts.main.clone(),
                             color: Color::rgb_u8(61, 51, 51),
-                            ..default()
                         },
                     )
                     .with_alignment(TextAlignment::Center),
@@ -71,7 +70,6 @@ fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>) {
                             font_size: 30.,
                             font: fonts.main.clone(),
                             color: Color::rgb_u8(61, 51, 51),
-                            ..default()
                         },
                     )
                     .with_alignment(TextAlignment::Center),
@@ -96,8 +94,7 @@ fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>) {
                         TextStyle {
                             font_size: 90.,
                             font: fonts.main.clone(),
-                            color: Color::rgb_u8(61, 51, 51),
-                            ..default()
+                            color: Color::rgb_u8(61, 51, 51)
                         },
                     )
                     .with_alignment(TextAlignment::Center),

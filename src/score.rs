@@ -7,14 +7,11 @@ use crate::{
     reset::{RegisteredSystems, Resettable},
     GameState,
 };
-use bevy::{prelude::*};
-use bevy_trauma_shake::{TraumaCommands};
+use bevy::prelude::*;
+use bevy_trauma_shake::TraumaCommands;
 use bevy_tweening::{Animator, EaseFunction};
 
-use std::{
-    ops::{Sub},
-    time::Duration,
-};
+use std::{ops::Sub, time::Duration};
 
 pub struct ScorePlugin;
 impl Plugin for ScorePlugin {
@@ -93,7 +90,6 @@ fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>, systems: Res<RegisteredSy
                         font_size: 40.0,
                         color: Color::rgb_u8(61, 51, 51),
                         font: fonts.main.clone(),
-                        ..default()
                     },
                 )
                 .with_style(Style {
@@ -110,7 +106,6 @@ fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>, systems: Res<RegisteredSy
                         font_size: 60.0,
                         color: Color::rgb_u8(61, 51, 51),
                         font: fonts.main.clone(),
-                        ..default()
                     },
                 )
                 .with_style(Style {
@@ -152,7 +147,6 @@ fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>, systems: Res<RegisteredSy
                         font_size: 40.0,
                         color: Color::rgb_u8(61, 51, 51),
                         font: fonts.main.clone(),
-                        ..default()
                     },
                 ));
             });
@@ -174,7 +168,6 @@ fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>, systems: Res<RegisteredSy
                         font_size: 25.0,
                         color: Color::rgb_u8(61, 51, 51),
                         font: fonts.main.clone(),
-                        ..default()
                     },
                 )
                 .with_style(Style {
@@ -191,7 +184,6 @@ fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>, systems: Res<RegisteredSy
                         font_size: 60.0,
                         color: Color::rgb_u8(61, 51, 51),
                         font: fonts.main.clone(),
-                        ..default()
                     },
                 )
                 .with_style(Style {
@@ -219,7 +211,6 @@ fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>, systems: Res<RegisteredSy
                         font_size: 40.0,
                         color: Color::rgb_u8(61, 51, 51),
                         font: fonts.main.clone(),
-                        ..default()
                     },
                 )
                 .with_style(Style {
@@ -236,7 +227,6 @@ fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>, systems: Res<RegisteredSy
                         font_size: 60.0,
                         color: Color::rgb_u8(61, 51, 51),
                         font: fonts.main.clone(),
-                        ..default()
                     },
                 )
                 .with_style(Style {

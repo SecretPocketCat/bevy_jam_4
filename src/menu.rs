@@ -67,7 +67,6 @@ pub fn spawn_play_btn(
                     font_size: 40.0,
                     color: Color::rgb_u8(61, 51, 51),
                     font,
-                    ..default()
                 },
             ));
         })
