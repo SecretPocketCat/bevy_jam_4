@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 
 use bevy::prelude::*;
-use bevy_tweening::*;
+use bevy_tweening::{Animator, Delay, EaseFunction, Sequence, Tween};
 use std::time::Duration;
 
-use super::tween_lenses::*;
-use super::tween_macros::*;
+use super::tween_lenses::{SpriteRelativeColorLens, SpriteSheetRelativeColorLens, TextRelativeColorLens, TransformRelativePositionLens, TransformRelativeRotationLens, TransformRelativeScaleLens, UiBackgroundColorLens};
+use super::tween_macros::relative_tween_fns;
 
 pub fn delay_tween<T: 'static>(tween: Tween<T>, delay_ms: u64) -> Sequence<T> {
     if delay_ms > 0 {

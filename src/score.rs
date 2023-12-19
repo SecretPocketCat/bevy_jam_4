@@ -288,7 +288,7 @@ fn update_pieces_text(
 ) {
     if let Ok((e, mut text)) = text_q.get_single_mut() {
         let count = if pieces_q.iter().len() == 2 { 1 } else { 2 };
-        let txt = format!("{}", count);
+        let txt = format!("{count}");
         if text.sections[0].value != txt {
             text.sections[0].value = txt;
             cmd.entity(e).try_insert(Animator::new(

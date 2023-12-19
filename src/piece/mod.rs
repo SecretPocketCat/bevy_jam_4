@@ -271,7 +271,7 @@ fn rotate_piece(
                                 ),
                                 get_relative_rotation_tween(
                                     Quat::from_rotation_z(
-                                        (piece_hex_data.side_index as f32 * 60.).to_radians(),
+                                        (f32::from(piece_hex_data.side_index) * 60.).to_radians(),
                                     ),
                                     300,
                                 ),

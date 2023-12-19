@@ -111,7 +111,7 @@ pub(super) fn drag_piece_end(
 
                     // stop hexes from being pickable
                     if let Ok(children) = children_q.get(parent.get()) {
-                        for child in children.iter() {
+                        for child in children {
                             cmd.entity(*child).try_insert(Pickable::IGNORE);
                         }
                     }

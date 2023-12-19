@@ -60,7 +60,7 @@ fn on_map_completed(
     let route_hex_in_ms = 350;
     let route_hex_out_ms = 300;
 
-    for route in completed_map.routes.iter() {
+    for route in &completed_map.routes {
         // todo: raise score
 
         for (i, hex) in route.iter().enumerate() {
@@ -89,8 +89,7 @@ fn on_map_completed(
         .routes
         .iter()
         .max_by_key(|r| r.len())
-        .map(|r| r.len())
-        .unwrap_or(0);
+        .map_or(0, std::vec::Vec::len);
 
     let deadends_delay =
         longest_route as u64 * hex_stagger_ms + route_hex_in_ms + route_hex_out_ms + 300;
@@ -107,7 +106,7 @@ fn on_map_completed(
             for e in [dead_end.first(), dead_end.second()]
                 .iter()
                 .filter_map(|h| map.hexes.get(h))
-                .flat_map(|h| h.placed_hex_e)
+                .filter_map(|h| h.placed_hex_e)
             {
                 cmd.entity(e).try_insert(Animator::new(
                     delay_tween(

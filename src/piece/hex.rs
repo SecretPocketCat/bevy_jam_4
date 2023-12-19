@@ -33,11 +33,7 @@ impl Default for HexBlueprints {
         .into_iter()
         .enumerate()
         .map(
-            |(atlas_index, (connected_sides, weight))| RouteHexBlueprint {
-                connected_sides,
-                weight,
-                atlas_index,
-            },
+            |(atlas_index, (connected_sides, weight))| RouteHexBlueprint { connected_sides, atlas_index, weight },
         )
         .collect();
 

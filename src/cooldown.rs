@@ -31,7 +31,7 @@ pub fn process_cooldown<T: Send + Sync>(
     mut cooldown_q: Query<(Entity, &mut Cooldown<T>)>,
     time: Res<Time>,
 ) {
-    for (e, mut cooldown) in cooldown_q.iter_mut() {
+    for (e, mut cooldown) in &mut cooldown_q {
         cooldown.timer.tick(time.delta());
 
         if cooldown.timer.just_finished() {

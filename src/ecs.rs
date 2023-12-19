@@ -42,7 +42,7 @@ fn run_delayed_systems(
     mut commands: Commands,
     time: Res<Time>,
 ) {
-    for (e, mut sys) in query.iter_mut() {
+    for (e, mut sys) in &mut query {
         sys.delay.tick(time.delta());
 
         if sys.delay.just_finished() {
@@ -58,7 +58,7 @@ fn send_delayed_events<T: Event>(
     mut commands: Commands,
     time: Res<Time>,
 ) {
-    for (e, mut ev) in query.iter_mut() {
+    for (e, mut ev) in &mut query {
         ev.delay.tick(time.delta());
 
         if ev.delay.just_finished() {

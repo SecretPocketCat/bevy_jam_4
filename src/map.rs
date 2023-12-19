@@ -19,7 +19,7 @@ use bevy::{
     },
 };
 use bevy_tweening::{Animator, EaseFunction};
-use hexx::{shapes, Direction, *};
+use hexx::{shapes, Direction, Hex, HexLayout, HexOrientation};
 use rand::{seq::SliceRandom, thread_rng, Rng};
 
 pub use self::edge_connection::EdgeConnection;
@@ -130,7 +130,7 @@ impl WorldMap {
             .collect();
 
         // place hexes
-        for (hex, (connected_sides, hex_e)) in placed_hexes.iter() {
+        for (hex, (connected_sides, hex_e)) in &placed_hexes {
             if let Some(connected_sides) = connected_sides {
                 self.add_hex_graph_edges(hex, connected_sides);
             }
@@ -146,7 +146,7 @@ impl WorldMap {
             let start_node = self.hexes[hex].node_index;
             let res = dijkstra(&self.graph, start_node.into(), None, |_| 1);
 
-            let other_houses: Vec<_> = self.houses.iter().filter(|h| *h != hex).cloned().collect();
+            let other_houses: Vec<_> = self.houses.iter().filter(|h| *h != hex).copied().collect();
 
             let all_reachable = other_houses
                 .iter()
@@ -168,7 +168,7 @@ impl WorldMap {
                                 |n| {
                                     let node_index = n.index() as u32;
                                     let hex =
-                                        self.hex_nodes.get(&node_index).cloned().unwrap_or_else(
+                                        self.hex_nodes.get(&node_index).copied().unwrap_or_else(
                                             || self.hex_edge_nodes[&node_index].first(),
                                         );
                                     house.unsigned_distance_to(hex)
@@ -179,7 +179,7 @@ impl WorldMap {
 
                             path.iter()
                                 .filter_map(|n| self.hex_nodes.get(&(n.index() as u32)))
-                                .cloned()
+                                .copied()
                                 .collect()
                         })
                         .collect(),
@@ -279,17 +279,17 @@ pub fn spawn_grid(
         .unwrap(),
         4..=5 => Direction::ALL_DIRECTIONS
             .choose_multiple(&mut rng, 4)
-            .cloned()
+            .copied()
             .collect(),
         6..=7 => Direction::ALL_DIRECTIONS
             .choose_multiple(&mut rng, 4)
             .chain(Direction::ALL_DIRECTIONS.choose_multiple(&mut rng, 2))
-            .cloned()
+            .copied()
             .collect(),
         _ => Direction::ALL_DIRECTIONS
             .choose_multiple(&mut rng, 5)
             .chain(Direction::ALL_DIRECTIONS.choose_multiple(&mut rng, 5))
-            .cloned()
+            .copied()
             .collect(),
     };
 
@@ -297,7 +297,7 @@ pub fn spawn_grid(
     let mut hexes: HashMap<Hex, MapHex> = shapes::hexagon(Hex::ZERO, map_radius)
         .map(|hex| {
             let pos = layout.hex_to_world_pos(hex);
-            let hex_len = hex.ulength() as u64;
+            let hex_len = u64::from(hex.ulength());
             cmd.spawn((
                 SpriteSheetBundle {
                     transform: Transform {
@@ -314,7 +314,7 @@ pub fn spawn_grid(
                         None,
                         Vec3::ONE,
                         350,
-                        if hex_len == map_radius as u64 {
+                        if hex_len == u64::from(map_radius) {
                             EaseFunction::BackOut
                         } else {
                             EaseFunction::QuadraticOut
@@ -349,12 +349,12 @@ pub fn spawn_grid(
     let mut wedge_indices = HashSet::with_capacity(count);
     let allow_houses_outside_grid = lvl.0 >= 1;
 
-    for dir in direction_group.iter() {
+    for dir in &direction_group {
         'wedge: loop {
             for (i, hex) in Hex::ZERO
                 .corner_wedge(
                     ((map_radius - 2.min(map_radius))
-                        ..=(map_radius + if allow_houses_outside_grid { 1 } else { 0 }))
+                        ..=(map_radius + u32::from(allow_houses_outside_grid)))
                         .rev(),
                     *dir,
                 )

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
-use bevy_tweening::*;
+use bevy_tweening::{Lens, Lerp, TweeningDirection};
 
-use super::tween_macros::*;
+use super::tween_macros::{color_lens, relative_lens, relative_lens_struct};
 
 relative_lens!(Transform, Vec3, TransformRelativeScaleLens, scale);
 relative_lens!(Transform, Vec3, TransformRelativePositionLens, translation);

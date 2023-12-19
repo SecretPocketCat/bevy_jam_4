@@ -114,7 +114,7 @@ fn move_bg(
         time.delta_seconds(),
     );
 
-    for (mut t, bg) in bg_q.iter_mut() {
+    for (mut t, bg) in &mut bg_q {
         t.translation.x = time.elapsed_seconds().mul(*speed_t).rem_euclid(1000.) + bg.0;
     }
 }
