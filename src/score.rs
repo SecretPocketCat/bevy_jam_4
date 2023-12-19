@@ -55,7 +55,7 @@ pub struct Score(pub u32);
 pub struct Level(pub u32);
 
 #[derive(Debug, Resource, Default, Event)]
-pub struct UpdateScoreEv(pub i32);
+pub struct UpdateScoreEv(pub i8);
 
 #[derive(Debug, Resource, Deref, DerefMut)]
 pub struct GameTimer(pub Timer);
@@ -257,7 +257,7 @@ fn update_score(
     text_q: Query<Entity, With<ScoreText>>,
 ) {
     for ev in ev_r.read() {
-        score.0 = score.0.saturating_add_signed(ev.0);
+        score.0 = score.0.saturating_add_signed(i32::from(ev.0));
 
         if let Ok(e) = text_q.get_single() {
             cmd.entity(e).try_insert(Animator::new(

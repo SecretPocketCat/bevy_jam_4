@@ -9,7 +9,7 @@ use crate::{
     score::{UpdateScoreEv, UpdateTimerEv},
     GameState,
 };
-use bevy::{prelude::*};
+use bevy::prelude::*;
 use bevy_tweening::{Animator, EaseFunction};
 use hexx::Hex;
 
@@ -48,7 +48,7 @@ fn on_map_completed(
     // add routes score
     cmd.spawn(DelayedEvent::new_ms(
         300,
-        UpdateScoreEv(map.house_count() as i32 * 10),
+        UpdateScoreEv((map.house_count() * 10) as i8),
     ));
 
     cmd.spawn(DelayedEvent::new_ms(
@@ -131,7 +131,7 @@ fn on_map_completed(
         // sub deadends score
         cmd.spawn(DelayedEvent::new_ms(
             deadends_delay + 300,
-            UpdateScoreEv(-(completed_map.dead_ends.len() as i32)),
+            UpdateScoreEv(-(completed_map.dead_ends.len() as i8)),
         ));
     }
 

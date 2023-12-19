@@ -63,6 +63,7 @@ pub struct Piece {
 pub struct PlacedPiece;
 
 #[allow(clippy::too_many_lines)]
+#[allow(clippy::cast_possible_wrap)]
 fn spawn_pieces(
     mut cmd: Commands,
     map_layout: Res<WorldLayout>,
@@ -251,9 +252,12 @@ fn rotate_piece(
                             hex.ccw_around(center_hex)
                         };
 
-                        piece_hex_data.side_index = get_side_index(
-                            piece_hex_data.side_index as i8 + (if clockwise { -1 } else { 1 }),
-                        ) as u8;
+                        #[allow(clippy::cast_possible_wrap)]
+                        {
+                            piece_hex_data.side_index = get_side_index(
+                                piece_hex_data.side_index as i8 + (if clockwise { -1 } else { 1 }),
+                            ) as u8;
+                        }
 
                         if let Some(connections) = &mut piece_hex_data.connections {
                             if clockwise {
