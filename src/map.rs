@@ -98,8 +98,8 @@ impl WorldMap {
             })
     }
 
-    fn add_hex_graph_edges(&mut self, hex: &Hex, edge_connections: &[bool; 6]) {
-        let hex_data = &self.hexes[hex];
+    fn add_hex_graph_edges(&mut self, hex: Hex, edge_connections: [bool; 6]) {
+        let hex_data = &self.hexes[&hex];
         let hex_node = hex_data.node_index;
 
         for (side, _) in edge_connections
@@ -107,8 +107,8 @@ impl WorldMap {
             .enumerate()
             .filter(|(_, conn)| **conn)
         {
-            let target_hex = *hex + Hex::new(1, -1).rotate_cw(side as u32);
-            let edge_node = self.get_or_add_edge_connection(*hex, target_hex);
+            let target_hex = hex + Hex::new(1, -1).rotate_cw(side as u32);
+            let edge_node = self.get_or_add_edge_connection(hex, target_hex);
 
             self.graph.add_edge(hex_node.into(), edge_node.into(), ());
 
@@ -132,7 +132,7 @@ impl WorldMap {
         // place hexes
         for (hex, (connected_sides, hex_e)) in &placed_hexes {
             if let Some(connected_sides) = connected_sides {
-                self.add_hex_graph_edges(hex, connected_sides);
+                self.add_hex_graph_edges(*hex, *connected_sides);
             }
 
             self.hexes.entry(*hex).and_modify(|map_hex| {
@@ -222,6 +222,7 @@ impl MapHex {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 pub fn spawn_grid(
     mut cmd: Commands,
     sprites: Res<TextureAssets>,
@@ -402,7 +403,9 @@ pub fn spawn_grid(
                     for (i, neighbour) in neighbours.iter().enumerate() {
                         if hexes.contains_key(neighbour) {
                             continue;
-                        } else if rng.gen_bool(0.25) {
+                        }
+
+                        if rng.gen_bool(0.25) {
                             break;
                         }
 
@@ -453,9 +456,9 @@ pub fn spawn_grid(
             }) {
                 skip_count = 2;
                 continue;
-            } else {
-                tween_offset_i += 1;
             }
+
+            tween_offset_i += 1;
 
             let entity = cmd
                 .spawn((

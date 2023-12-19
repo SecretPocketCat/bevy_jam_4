@@ -1,5 +1,9 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::needless_pass_by_value)]
+#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::cast_precision_loss)]
 
 mod animation;
 mod cooldown;

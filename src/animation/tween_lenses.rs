@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_tweening::{Lens, Lerp, TweeningDirection};
+use bevy_tweening::{Lens, TweeningDirection};
 
 use super::tween_macros::{color_lens, relative_lens, relative_lens_struct};
 

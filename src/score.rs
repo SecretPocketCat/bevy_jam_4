@@ -63,6 +63,7 @@ pub struct GameTimer(pub Timer);
 #[derive(Debug, Resource, Default, Event)]
 pub struct UpdateTimerEv(pub f32);
 
+#[allow(clippy::too_many_lines)]
 fn setup_ui(mut cmd: Commands, fonts: Res<FontAssets>, systems: Res<RegisteredSystems>) {
     cmd.spawn(NodeBundle {
         style: Style {

@@ -62,6 +62,7 @@ pub struct Piece {
 #[derive(Component)]
 pub struct PlacedPiece;
 
+#[allow(clippy::too_many_lines)]
 fn spawn_pieces(
     mut cmd: Commands,
     map_layout: Res<WorldLayout>,
@@ -80,10 +81,10 @@ fn spawn_pieces(
             .x;
 
         for (piece_i, y) in [-220., 0., 220.].iter().enumerate() {
-            let size = blueprints.size_weighted_index.sample(&mut rng) + 1;
+            let hex_count = blueprints.size_weighted_index.sample(&mut rng) + 1;
             let mut hexes = HashMap::with_capacity(3);
 
-            for size_i in 0..size {
+            for size_i in 0..hex_count {
                 let mut blueprint =
                     blueprints.hexes[blueprints.weighted_index.sample(&mut rng)].clone();
 
@@ -206,6 +207,7 @@ fn spawn_pieces(
     }
 }
 
+#[allow(clippy::cast_sign_loss)]
 fn get_side_index(index: i8) -> usize {
     index.wrapping_rem_euclid(6) as usize
 }
