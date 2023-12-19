@@ -5,7 +5,7 @@ use crate::{
     score::GameTimer,
     GameState,
 };
-use bevy::{prelude::*, transform::commands};
+use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
 use bevy_trauma_shake::Shake;
 
@@ -21,8 +21,7 @@ impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         app.add_loading_state(LoadingState::new(GameState::Loading).continue_to_state(
             if cfg!(debug_assertions) {
-                // GameState::Game
-                GameState::Tutorial
+                GameState::Game
             } else {
                 GameState::Tutorial
             },

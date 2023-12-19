@@ -1,5 +1,4 @@
 #![allow(clippy::type_complexity)]
-#![allow(unused_imports)]
 
 mod animation;
 mod cooldown;
